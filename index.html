@@ -282,12 +282,14 @@
         const firebaseConfig = typeof __firebase_config !== 'undefined' 
             ? JSON.parse(__firebase_config) 
             : {
-                apiKey: "AIzaSyCI4OsJqHzbBcJXn4pz1c6UDcyAGCTX-Lk",
+                // ИСПОЛЬЗУЙТЕ ТОЧНУЮ КОНФИГУРАЦИЮ, ПРЕДОСТАВЛЕННУЮ ПОЛЬЗОВАТЕЛЕМ (FallBack)
+                apiKey: "AIzaSyCI4OsJqHzBcLJXn4pz1c6UDcyAGCTX-Lk",
                 authDomain: "telekat-messenger.firebaseapp.com",
                 projectId: "telekat-messenger",
                 storageBucket: "telekat-messenger.firebasestorage.app",
                 messagingSenderId: "596576341286",
                 appId: "1:596576341286:web:6e7c4cece58ca4b15605e7",
+                measurementId: "G-6F4ML0067L"
             };
         
         // 2. Initialize Firebase
@@ -313,7 +315,7 @@
             const pass = document.getElementById('password-input').value.trim();
             errorText.classList.add('hidden');
             
-            // НОВАЯ ПРОВЕРКА: Если поля пусты, показываем ошибку на стороне клиента
+            // Клиентская проверка на пустые поля
             if (!email || !pass) {
                 errorText.textContent = "Пожалуйста, введите и Email, и Пароль для продолжения.";
                 errorText.classList.remove('hidden');
@@ -327,7 +329,7 @@
                     await createUserWithEmailAndPassword(auth, email, pass);
                 }
             } catch (error) {
-                // Показываем ошибку от Firebase, если она не связана с отсутствием пароля (например, 'auth/wrong-password')
+                // Показываем ошибку от Firebase
                 errorText.textContent = error.message;
                 errorText.classList.remove('hidden');
             }
