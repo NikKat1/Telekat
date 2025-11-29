@@ -279,10 +279,11 @@
 
         // --- Configuration & Initialization ---
         // 1. Load configuration from global variable (mandatory for Canvas) or use fallback
+        // Примечание: Идентификатор клиента Google (596576341286-sfs1ih34...) должен быть настроен в консоли Firebase.
         const firebaseConfig = typeof __firebase_config !== 'undefined' 
             ? JSON.parse(__firebase_config) 
             : {
-                apiKey: "AIzaSyCI4OsJqHzBcLJXn4pz1c6UDcyAGCTX-Lk",
+                apiKey: "AIzaSyCI4OsJqHzbBcJXn4pz1c6UDcyAGCTX-Lk",
                 authDomain: "telekat-messenger.firebaseapp.com",
                 projectId: "telekat-messenger",
                 storageBucket: "telekat-messenger.firebasestorage.app",
@@ -328,6 +329,7 @@
         window.signInWithGoogle = async () => {
             const provider = new GoogleAuthProvider();
             try {
+                // Firebase автоматически использует конфигурацию проекта для обработки Google Sign-In
                 await signInWithPopup(auth, provider);
             } catch (error) {
                 console.error("Google Auth Error:", error);
