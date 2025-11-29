@@ -282,7 +282,7 @@
         const firebaseConfig = typeof __firebase_config !== 'undefined' 
             ? JSON.parse(__firebase_config) 
             : {
-                // ИСПОЛЬЗУЙТЕ ТОЧНУЮ КОНФИГУРАЦИЮ, ПРЕДОСТАВЛЕННУЮ ПОЛЬЗОВАТЕЛЕМ (FallBack)
+                // ВАЖНО: Эти значения используются только как резервные. Проверьте, что в консоли Firebase включены Email/Password и Google провайдеры.
                 apiKey: "AIzaSyCI4OsJqHzBcLJXn4pz1c6UDcyAGCTX-Lk",
                 authDomain: "telekat-messenger.firebaseapp.com",
                 projectId: "telekat-messenger",
@@ -324,12 +324,14 @@
             
             try {
                 if (type === 'login') {
+                    // ПРИМЕЧАНИЕ: Сначала пользователь должен быть зарегистрирован с помощью authAction('register')
                     await signInWithEmailAndPassword(auth, email, pass);
                 } else {
                     await createUserWithEmailAndPassword(auth, email, pass);
                 }
             } catch (error) {
-                // Показываем ошибку от Firebase
+                // Показываем ошибку от Firebase (например, auth/user-not-found)
+                console.error("Auth Error:", error);
                 errorText.textContent = error.message;
                 errorText.classList.remove('hidden');
             }
@@ -338,11 +340,20 @@
         window.signInWithGoogle = async () => {
             const provider = new GoogleAuthProvider();
             try {
-                // Firebase автоматически использует конфигурацию проекта для обработки Google Sign-In
+                // Если Google провайдер включен в консоли Firebase, это сработает.
                 await signInWithPopup(auth, provider);
             } catch (error) {
                 console.error("Google Auth Error:", error);
-                errorText.textContent = "Ошибка входа через Google";
+                // Сообщение об ошибке, если провайдер не включен или есть другие проблемы
+                let errorMessage = "Ошибка входа через Google. ";
+                if (error.code === 'auth/popup-closed-by-user') {
+                    errorMessage += "Вы закрыли окно входа.";
+                } else if (error.code === 'auth/operation-not-allowed') {
+                    errorMessage += "Вход через Google не включен в консоли Firebase.";
+                } else {
+                     errorMessage += error.message;
+                }
+                errorText.textContent = errorMessage;
                 errorText.classList.remove('hidden');
             }
         };
