@@ -273,27 +273,29 @@
 
     <!-- Firebase SDKs -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, limit, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- Configuration ---
-        // Using provided config or falling back to a safe default structure to prevent runtime crash if vars missing
-        const firebaseConfig = {
-            apiKey: "AIzaSyCI4OsJqHzBcLJXn4pz1c6UDcyAGCTX-Lk",
-            authDomain: "telekat-messenger.firebaseapp.com",
-            projectId: "telekat-messenger",
-            storageBucket: "telekat-messenger.firebasestorage.app",
-            messagingSenderId: "596576341286",
-            appId: "1:596576341286:web:6e7c4cece58ca4b15605e7",
-            measurementId: "G-6F4ML0067L"
-        };
-
-        // Initialize Firebase
+        // --- Configuration & Initialization ---
+        // 1. Load configuration from global variable (mandatory for Canvas) or use fallback
+        const firebaseConfig = typeof __firebase_config !== 'undefined' 
+            ? JSON.parse(__firebase_config) 
+            : {
+                apiKey: "AIzaSyCI4OsJqHzBcLJXn4pz1c6UDcyAGCTX-Lk",
+                authDomain: "telekat-messenger.firebaseapp.com",
+                projectId: "telekat-messenger",
+                storageBucket: "telekat-messenger.firebasestorage.app",
+                messagingSenderId: "596576341286",
+                appId: "1:596576341286:web:6e7c4cece58ca4b15605e7",
+            };
+        
+        // 2. Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        
+        setLogLevel('Debug'); // Enable detailed logging
+
         // App State
         let currentUser = null;
         let messages = [];
@@ -336,14 +338,40 @@
 
         window.signOutUser = () => signOut(auth);
 
+        // 3. Initial Authentication Check (Canvas requirement)
+        const initialAuth = async () => {
+            const token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+            try {
+                if (token) {
+                    await signInWithCustomToken(auth, token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Initial sign-in failed:", error);
+                // Fallback to anonymous sign-in if custom token fails
+                try {
+                    await signInAnonymously(auth);
+                } catch (anonError) {
+                    console.error("Anonymous sign-in failed:", anonError);
+                }
+            }
+        };
+        initialAuth();
+
+
         onAuthStateChanged(auth, (user) => {
             loadingOverlay.classList.add('hidden');
             if (user) {
                 currentUser = user;
                 authModal.classList.add('hidden');
                 document.getElementById('user-badge').classList.remove('hidden');
-                document.getElementById('user-email').textContent = user.email || "Аноним";
-                document.getElementById('user-email').title = user.email; // Tooltip
+                
+                // Show user ID for visibility (Canvas requirement)
+                const userIdDisplay = user.uid || crypto.randomUUID();
+                document.getElementById('user-email').textContent = userIdDisplay; 
+                document.getElementById('user-email').title = user.email || "Аноним";
+                
                 initChat();
             } else {
                 currentUser = null;
@@ -354,18 +382,13 @@
 
         // --- Chat Logic ---
         function initChat() {
-            // Determine collection path based on environment variables if present, else default
+            // Determine collection path using appId (Canvas requirement)
             const appId = typeof __app_id !== 'undefined' ? __app_id : 'telekat-messenger';
-            // Fallback for strict firestore rules compatibility in some environments
-            const collectionPath = `messages`; 
             
-            // NOTE: In a real production app with strict rules, we'd use specific paths. 
-            // Here we use the root collection 'messages' as per typical simple Firebase setups.
-            // If the user environment requires nested paths:
-            // const collectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'messages');
+            // Public collection path: /artifacts/{appId}/public/data/messages
+            const collectionPath = `artifacts/${appId}/public/data/messages`; 
             
-            // Using root collection for this specific user request context
-            const q = query(collection(db, "messages"), orderBy("timestamp", "desc"), limit(100));
+            const q = query(collection(db, collectionPath), orderBy("timestamp", "desc"), limit(100));
             
             onSnapshot(q, (snapshot) => {
                 const tempMsgs = [];
@@ -375,6 +398,11 @@
                 messages = tempMsgs.reverse(); // Standardize to oldest first
                 renderMessages();
                 updateStats();
+            }, (error) => {
+                 console.error("Firestore error onSnapshot:", error);
+                 // If permission denied, show a message box instead of alert
+                 const messageContainer = document.getElementById('messages-container');
+                 messageContainer.innerHTML = `<div class="p-4 bg-red-100 text-red-700 rounded-lg">Ошибка загрузки чата: проверьте права доступа к Firestore или войдите в систему.</div>`;
             });
         }
 
@@ -402,8 +430,9 @@
                 const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                 // Sender Name (only show if changed)
+                const senderIdDisplay = msg.senderId || 'Anon';
                 const showName = !isMe && msg.senderId !== lastSenderId;
-                const nameHtml = showName ? `<div class="text-xs font-bold text-blue-500 mb-1">${msg.senderEmail?.split('@')[0] || 'User'}</div>` : '';
+                const nameHtml = showName ? `<div class="text-xs font-bold text-blue-500 mb-1">${senderIdDisplay.substring(0, 8)}...</div>` : '';
 
                 wrapper.innerHTML = `
                     <div class="relative max-w-[80%] md:max-w-[60%] ${bgClass} rounded-lg px-3 py-2 shadow-sm text-sm text-gray-800 break-words">
@@ -443,12 +472,16 @@
 
             if ((!text && !photoUrl) || !currentUser) return;
 
+            // Determine collection path
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'telekat-messenger';
+            const collectionPath = `artifacts/${appId}/public/data/messages`; 
+
             try {
-                await addDoc(collection(db, "messages"), {
+                await addDoc(collection(db, collectionPath), {
                     text: text,
                     photoUrl: photoUrl,
                     senderId: currentUser.uid,
-                    senderEmail: currentUser.email,
+                    senderEmail: currentUser.email || 'anonymous',
                     timestamp: serverTimestamp()
                 });
                 input.value = '';
@@ -456,7 +489,9 @@
                 document.getElementById('file-input-wrapper').classList.add('hidden');
             } catch (error) {
                 console.error("Send error:", error);
-                alert("Ошибка отправки. Проверьте консоль.");
+                // Show a message box instead of alert
+                const container = document.getElementById('messages-container');
+                container.innerHTML += `<div class="p-2 mt-2 bg-red-100 text-red-700 rounded-lg text-sm">Ошибка отправки: ${error.message}</div>`;
             }
         };
 
@@ -474,7 +509,8 @@
             // 1. User Activity
             const userCounts = {};
             messages.forEach(m => {
-                const name = m.senderEmail ? m.senderEmail.split('@')[0] : 'Anon';
+                // Use a short version of the sender ID for anonymous users
+                const name = m.senderEmail ? m.senderEmail.split('@')[0] : (m.senderId ? m.senderId.substring(0, 8) : 'Anon');
                 userCounts[name] = (userCounts[name] || 0) + 1;
             });
 
@@ -552,6 +588,7 @@
                 tabChats.classList.add('text-gray-500');
                 tabAnalytics.classList.add('text-blue-500', 'border-b-2', 'border-blue-500');
                 tabAnalytics.classList.remove('text-gray-500');
+                // Ensure charts update when switching to the analytics tab
                 updateStats();
             }
         };
@@ -609,7 +646,8 @@
                     status.innerHTML = `Успешно! <a href="${data.html_url}" target="_blank" class="underline font-bold">Открыть Gist</a>`;
                     status.className = "text-xs mt-2 text-center text-green-600";
                 } else {
-                    throw new Error("GitHub API Error: " + response.status);
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || `GitHub API Error: ${response.status}`);
                 }
             } catch (err) {
                 status.textContent = "Ошибка: " + err.message;
@@ -627,11 +665,11 @@
     <!-- Placeholder Comments Required by System Prompt -->
     <!-- Chosen Palette: Telegram Default (Blue #3390ec, Light Gray #f4f4f4, Green Accent for own messages) -->
     <!-- Application Structure Plan:
-         1. Authentication Layer: Modal overlay preventing access until logged in via Google/Email.
+         1. Authentication Layer: Modal overlay preventing access until logged in via Google/Email or authenticated via Canvas token/anonymous sign-in.
          2. Split View Layout (Desktop) / Tab Layout (Mobile):
             - Left: Sidebar containing Chat List (Nav) and Analytics Dashboard (Report).
             - Right: Active Chat Interface.
-         3. Analytics Dashboard: Integrated into the sidebar as a tab to satisfy the 'Report' requirement while maintaining the 'Chat App' feel. It visualizes message volume and temporal trends.
+         3. Analytics Dashboard: Integrated into the sidebar as a tab to satisfy the 'Report' requirement while maintaining the 'Chat App' feel. It visualizes message volume and temporal trends using Firestore data.
          4. GitHub Integration: Modal for exporting data, satisfying the specific user request for GitHub connectivity.
     -->
     <!-- Visualization & Content Choices:
