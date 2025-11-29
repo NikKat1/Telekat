@@ -279,7 +279,6 @@
 
         // --- Configuration & Initialization ---
         // 1. Load configuration from global variable (mandatory for Canvas) or use fallback
-        // Примечание: Идентификатор клиента Google (596576341286-sfs1ih34...) должен быть настроен в консоли Firebase.
         const firebaseConfig = typeof __firebase_config !== 'undefined' 
             ? JSON.parse(__firebase_config) 
             : {
@@ -310,9 +309,16 @@
         window.handleEmailAuth = (e) => e.preventDefault();
 
         window.authAction = async (type) => {
-            const email = document.getElementById('email-input').value;
-            const pass = document.getElementById('password-input').value;
+            const email = document.getElementById('email-input').value.trim();
+            const pass = document.getElementById('password-input').value.trim();
             errorText.classList.add('hidden');
+            
+            // НОВАЯ ПРОВЕРКА: Если поля пусты, показываем ошибку на стороне клиента
+            if (!email || !pass) {
+                errorText.textContent = "Пожалуйста, введите и Email, и Пароль для продолжения.";
+                errorText.classList.remove('hidden');
+                return;
+            }
             
             try {
                 if (type === 'login') {
@@ -321,6 +327,7 @@
                     await createUserWithEmailAndPassword(auth, email, pass);
                 }
             } catch (error) {
+                // Показываем ошибку от Firebase, если она не связана с отсутствием пароля (например, 'auth/wrong-password')
                 errorText.textContent = error.message;
                 errorText.classList.remove('hidden');
             }
