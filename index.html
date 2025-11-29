@@ -16,52 +16,74 @@
 
     <!-- CSS Styles -->
     <style>
+        /* Base Colors & Variables */
         :root {
+            /* Light Theme */
             --tg-blue: #3390ec;
             --tg-bg: #f4f4f4;
-            --tg-chat-bg: #e5e5f7; /* Light Blue/Gray Pattern Base */
+            --tg-sidebar-bg: #ffffff;
+            --tg-chat-bg: #e5e5f7; 
             --tg-msg-out: #eeffde;
             --tg-msg-in: #ffffff;
+            --tg-text: #1f2937;
+            --tg-subtext: #4b5563;
+            --tg-border: #e5e7eb;
         }
-        
+
+        html.dark {
+            /* Dark Theme */
+            --tg-blue: #4a91ff; /* Brighter blue for dark contrast */
+            --tg-bg: #111827; /* Very Dark Gray */
+            --tg-sidebar-bg: #1f2937; /* Dark Gray for sidebar */
+            --tg-chat-bg: #283b4b; /* Dark Blue/Gray patterned base */
+            --tg-msg-out: #4a91ff; /* Outbound: Telegram Dark Blue */
+            --tg-msg-in: #374151; /* Inbound: Dark Gray */
+            --tg-text: #f3f4f6; /* Light Text */
+            --tg-subtext: #9ca3af; /* Muted Light Text */
+            --tg-border: #374151;
+        }
+
         body {
             font-family: 'Roboto', sans-serif;
             background-color: var(--tg-bg);
-            /* Устанавливаем минимальную высоту и центрируем на больших экранах */
+            color: var(--tg-text);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
+            transition: background-color 0.3s;
         }
         
         /* Main Container for Desktop Optimization */
         #app-container {
             width: 100%;
             height: 100vh;
-            max-width: 1400px; /* Ограничиваем максимальную ширину для десктопа */
-            max-height: 900px; /* Ограничиваем максимальную высоту для десктопа */
+            max-width: 1400px;
+            max-height: 900px;
             overflow: hidden;
             display: flex;
-            flex-direction: column; /* По умолчанию вертикально для мобильных */
+            flex-direction: column;
+            background-color: var(--tg-sidebar-bg);
         }
         
         /* Desktop/Landscape Layout */
         @media (min-width: 768px), (orientation: landscape) {
             #app-container {
-                flex-direction: row; /* На десктопе или в горизонтальной ориентации - горизонтальный сплит */
-                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+                flex-direction: row;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
                 border-radius: 1rem;
             }
             .sidebar {
                 height: 100%;
                 min-width: 320px;
+                border-right-color: var(--tg-border);
             }
             .main-chat {
                 height: 100%;
             }
         }
 
-        /* Chart Container Styling - MANDATORY per instructions */
+        /* Chart Container Styling */
         .chart-container {
             position: relative;
             width: 100%;
@@ -71,11 +93,14 @@
             margin-right: auto;
         }
 
-        /* Telegram-like Pattern Background (CSS Only) */
+        /* Telegram-like Pattern Background */
         .chat-background {
             background-color: var(--tg-chat-bg);
             opacity: 0.8;
-            background-image:  radial-gradient(#a3a3a3 0.5px, transparent 0.5px), radial-gradient(#a3a3a3 0.5px, #e5e5f7 0.5px);
+            /* Pattern colors change with theme */
+            background-image:  
+                radial-gradient(var(--tg-subtext) 0.5px, transparent 0.5px), 
+                radial-gradient(var(--tg-subtext) 0.5px, var(--tg-chat-bg) 0.5px);
             background-size: 20px 20px;
             background-position: 0 0, 10px 10px;
         }
@@ -88,13 +113,16 @@
             background: transparent;
         }
         .custom-scroll::-webkit-scrollbar-thumb {
-            background-color: rgba(0, 0, 0, 0.2);
+            background-color: rgba(0, 0, 0, 0.4);
             border-radius: 3px;
+        }
+        html.dark .custom-scroll::-webkit-scrollbar-thumb {
+            background-color: rgba(255, 255, 255, 0.2);
         }
 
         /* Loader */
         .loader {
-            border: 4px solid #f3f3f3;
+            border: 4px solid var(--tg-border);
             border-top: 4px solid var(--tg-blue);
             border-radius: 50%;
             width: 30px;
@@ -108,51 +136,54 @@
         }
     </style>
 </head>
-<body class="bg-gray-100">
+<body class="bg-gray-100 text-gray-800 transition-colors duration-300">
 
     <!-- Loading Overlay -->
-    <div id="loading-overlay" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white">
+    <div id="loading-overlay" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white dark:bg-gray-900 transition-colors duration-300">
         <div class="loader mb-4"></div>
-        <p class="text-gray-500 font-medium">Загрузка TeleKat...</p>
+        <p class="text-gray-500 dark:text-gray-400 font-medium">Загрузка TeleKat...</p>
+        <p class="text-xs text-gray-400 mt-2 text-center max-w-xs">
+            Если загрузка затягивается, возможно, система инициализирует ключ авторизации.
+        </p>
     </div>
 
-    <!-- Auth Modal -->
+    <!-- Auth Modal (Adapted for Dark Mode) -->
     <div id="auth-modal" class="fixed inset-0 z-40 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 hidden">
-        <div class="bg-white rounded-xl shadow-2xl p-8 w-full max-w-sm flex flex-col gap-4">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-8 w-full max-w-sm flex flex-col gap-4 transition-colors">
             <div class="text-center mb-2">
                 <div class="w-16 h-16 bg-blue-500 rounded-full mx-auto flex items-center justify-center text-white text-3xl font-bold mb-4">T</div>
-                <h2 class="text-2xl font-bold text-gray-800">Вход в TeleKat</h2>
-                <p class="text-sm text-gray-500">Синхронизация чатов и аналитика</p>
+                <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Вход в TeleKat</h2>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Синхронизация чатов и аналитика</p>
             </div>
             
-            <button onclick="signInWithGoogle()" class="flex items-center justify-center gap-3 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium py-2.5 px-4 rounded-lg transition-all shadow-sm">
+            <button onclick="signInWithGoogle()" class="flex items-center justify-center gap-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-100 font-medium py-2.5 px-4 rounded-lg transition-all shadow-sm">
                 <img src="https://upload.wikimedia.org/wikipedia/commons/4/4a/Logo_and_wordmark_of_Google_G_Suite.svg" alt="Google" class="w-5 h-5"> Войти через Google
             </button>
 
             <div class="flex items-center gap-2">
-                <div class="h-px bg-gray-200 flex-1"></div>
-                <span class="text-xs text-gray-400">ИЛИ EMAIL</span>
-                <div class="h-px bg-gray-200 flex-1"></div>
+                <div class="h-px bg-gray-200 dark:bg-gray-600 flex-1"></div>
+                <span class="text-xs text-gray-400 dark:text-gray-500">ИЛИ EMAIL</span>
+                <div class="h-px bg-gray-200 dark:bg-gray-600 flex-1"></div>
             </div>
 
             <form onsubmit="handleEmailAuth(event)" class="flex flex-col gap-3">
-                <input type="email" id="email-input" placeholder="Email" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all">
-                <input type="password" id="password-input" placeholder="Пароль" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                <input type="email" id="email-input" placeholder="Email" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                <input type="password" id="password-input" placeholder="Пароль" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all">
                 <div class="flex gap-2 mt-2">
                     <button type="button" onclick="authAction('login')" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 rounded-lg transition-colors">Войти</button>
-                    <button type="button" onclick="authAction('register')" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 rounded-lg transition-colors">Регистрация</button>
+                    <button type="button" onclick="authAction('register')" class="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-100 font-medium py-2 rounded-lg transition-colors">Регистрация</button>
                 </div>
             </form>
             <p id="auth-error" class="text-red-500 text-xs text-center mt-2 hidden"></p>
         </div>
     </div>
     
-    <!-- User Search Modal -->
+    <!-- User Search Modal (Adapted for Dark Mode) -->
     <div id="search-modal" class="fixed inset-0 z-40 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 hidden">
-        <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm">
-            <h3 class="text-xl font-bold text-gray-800 mb-4">Найти пользователя</h3>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 w-full max-w-sm transition-colors">
+            <h3 class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">Найти пользователя</h3>
             <div class="flex gap-2 mb-4">
-                <input type="text" id="search-input" placeholder="Введите имя пользователя или ID" class="flex-1 px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none">
+                <input type="text" id="search-input" placeholder="Введите имя пользователя или ID" class="flex-1 px-3 py-2 border dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded focus:ring-2 focus:ring-blue-500 outline-none">
                 <button onclick="searchUsers()" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 shadow">Поиск</button>
             </div>
             
@@ -161,7 +192,7 @@
             </div>
 
             <div class="flex justify-end mt-4">
-                <button onclick="toggleSearchModal(false)" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Закрыть</button>
+                <button onclick="toggleSearchModal(false)" class="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">Закрыть</button>
             </div>
         </div>
     </div>
@@ -170,25 +201,33 @@
     <div id="app-container" class="hidden">
         
         <!-- Sidebar (Navigation & Stats) -->
-        <aside class="sidebar w-full md:w-80 lg:w-96 bg-white border-r border-gray-200 flex flex-col h-[40vh] md:h-full shrink-0">
+        <aside class="sidebar w-full md:w-80 lg:w-96 bg-white dark:bg-[var(--tg-sidebar-bg)] border-r border-[var(--tg-border)] flex flex-col h-[40vh] md:h-full shrink-0 transition-colors duration-300">
             <!-- Sidebar Header -->
-            <div class="p-4 flex items-center justify-between border-b border-gray-100 bg-gray-50">
+            <div class="p-4 flex items-center justify-between border-b border-[var(--tg-border)] bg-gray-50 dark:bg-gray-800">
                 <div class="flex items-center gap-2">
-                    <h1 class="font-bold text-gray-700 text-xl">TeleKat</h1>
+                    <h1 class="font-bold text-gray-700 dark:text-gray-200 text-xl">TeleKat</h1>
                 </div>
                 <!-- User Profile & Settings -->
-                <div id="user-badge" class="flex items-center gap-2">
-                    <span id="user-username" class="font-medium text-gray-700 truncate max-w-[100px] hover:underline cursor-pointer" onclick="toggleView('settings')"></span>
-                    <button onclick="signOutUser()" class="text-xs bg-red-100 text-red-600 px-2 py-1 rounded hover:bg-red-200">Выход</button>
+                <div class="flex items-center gap-3">
+                    <!-- Theme Toggle -->
+                    <button id="theme-toggle" onclick="toggleTheme()" class="text-xl p-1 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors" title="Сменить тему">
+                        <!-- Icon will be updated by JS -->
+                        ☀️
+                    </button>
+                    
+                    <div id="user-badge" class="flex items-center gap-2">
+                        <span id="user-username" class="font-medium text-gray-700 dark:text-gray-300 truncate max-w-[100px] hover:underline cursor-pointer" onclick="toggleView('settings')"></span>
+                        <button onclick="signOutUser()" class="text-xs bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-300 px-2 py-1 rounded hover:bg-red-200 dark:hover:bg-red-800">Выход</button>
+                    </div>
                 </div>
             </div>
 
             <!-- Navigation Tabs -->
-            <div class="flex border-b border-gray-200">
-                <button onclick="switchTab('chats')" id="tab-chats" class="flex-1 py-3 text-sm font-medium text-blue-500 border-b-2 border-blue-500 transition-all hover:bg-gray-50">
+            <div class="flex border-b border-[var(--tg-border)]">
+                <button onclick="switchTab('chats')" id="tab-chats" class="flex-1 py-3 text-sm font-medium text-blue-500 border-b-2 border-blue-500 transition-all hover:bg-gray-50 dark:hover:bg-gray-700">
                     💬 Чаты
                 </button>
-                <button onclick="switchTab('analytics')" id="tab-analytics" class="flex-1 py-3 text-sm font-medium text-gray-500 transition-all hover:bg-gray-50">
+                <button onclick="switchTab('analytics')" id="tab-analytics" class="flex-1 py-3 text-sm font-medium text-gray-500 dark:text-gray-400 transition-all hover:bg-gray-50 dark:hover:bg-gray-700">
                     📊 Инсайты
                 </button>
             </div>
@@ -196,21 +235,21 @@
             <!-- Content: Chats List -->
             <div id="view-chats" class="flex-1 overflow-y-auto custom-scroll">
                 <!-- Public Chat -->
-                <div onclick="selectChat('public', null)" class="p-3 flex gap-3 hover:bg-gray-100 cursor-pointer transition-colors" id="chat-public">
+                <div onclick="selectChat('public', null)" class="p-3 flex gap-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors" id="chat-public">
                     <div class="w-12 h-12 bg-gradient-to-tr from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg shrink-0">
                         📢
                     </div>
                     <div class="flex-1 min-w-0">
                         <div class="flex justify-between items-baseline mb-1">
-                            <span class="font-semibold text-gray-800">Общий Канал</span>
-                            <span class="text-xs text-gray-400" id="public-last-time">...</span>
+                            <span class="font-semibold text-gray-800 dark:text-gray-200">Общий Канал</span>
+                            <span class="text-xs text-gray-400 dark:text-gray-500" id="public-last-time">...</span>
                         </div>
-                        <p class="text-sm text-gray-500 truncate" id="public-last-msg-preview">Нажмите, чтобы открыть</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 truncate" id="public-last-msg-preview">Нажмите, чтобы открыть</p>
                     </div>
                 </div>
                 
-                <div class="p-3 border-t border-gray-100">
-                    <h3 class="text-xs font-bold text-gray-400 uppercase mb-2 flex justify-between items-center">
+                <div class="p-3 border-t border-[var(--tg-border)]">
+                    <h3 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase mb-2 flex justify-between items-center">
                         Личные Чаты
                         <button onclick="toggleSearchModal(true)" class="text-sm text-blue-500 hover:text-blue-600 font-medium">
                             + Найти
@@ -222,53 +261,53 @@
                 </div>
             </div>
 
-            <!-- Content: Analytics Panel -->
+            <!-- Content: Analytics Panel (Adapted for Dark Mode) -->
             <div id="view-analytics" class="hidden flex-1 overflow-y-auto custom-scroll p-4 space-y-6">
-                <div class="bg-blue-50 rounded-lg p-4 border border-blue-100">
-                    <h3 class="text-blue-800 font-bold text-sm mb-1">Активность Чата</h3>
-                    <p class="text-xs text-blue-600">Анализ текущей сессии и истории сообщений.</p>
+                <div class="bg-blue-50 dark:bg-blue-950 rounded-lg p-4 border border-blue-100 dark:border-blue-800">
+                    <h3 class="text-blue-800 dark:text-blue-300 font-bold text-sm mb-1">Активность Чата</h3>
+                    <p class="text-xs text-blue-600 dark:text-blue-400">Анализ текущей сессии и истории сообщений.</p>
                 </div>
 
                 <!-- Chart 1: Activity Distribution -->
                 <div>
-                    <h4 class="text-xs font-bold text-gray-500 uppercase mb-2">Сообщения по Пользователям</h4>
+                    <h4 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2">Сообщения по Пользователям</h4>
                     <div class="chart-container">
                         <canvas id="userChart"></canvas>
                     </div>
                 </div>
 
-                <!-- Chart 2: Message Timeline (Mock logic based on real data) -->
+                <!-- Chart 2: Message Timeline -->
                 <div>
-                    <h4 class="text-xs font-bold text-gray-500 uppercase mb-2">Временная шкала</h4>
+                    <h4 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2">Временная шкала</h4>
                     <div class="chart-container">
                         <canvas id="timeChart"></canvas>
                     </div>
                 </div>
             </div>
 
-            <!-- Content: Settings Panel (Username Change) -->
+            <!-- Content: Settings Panel (Adapted for Dark Mode) -->
             <div id="view-settings" class="hidden flex-1 overflow-y-auto custom-scroll p-4 space-y-4">
-                <h2 class="text-xl font-bold text-gray-800 border-b pb-2 mb-4">Настройки Профиля</h2>
+                <h2 class="text-xl font-bold text-gray-800 dark:text-gray-100 border-b border-[var(--tg-border)] pb-2 mb-4">Настройки Профиля</h2>
                 
-                <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <h3 class="font-semibold text-gray-700 mb-2">Ваш текущий ID</h3>
-                    <p class="text-xs break-all text-gray-500" id="current-uid"></p>
-                    <h3 class="font-semibold text-gray-700 mt-3 mb-2">Ваш Email</h3>
-                    <p class="text-xs break-all text-gray-500" id="current-email"></p>
+                <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-[var(--tg-border)]">
+                    <h3 class="font-semibold text-gray-700 dark:text-gray-300 mb-2">Ваш текущий ID</h3>
+                    <p class="text-xs break-all text-gray-500 dark:text-gray-400" id="current-uid"></p>
+                    <h3 class="font-semibold text-gray-700 dark:text-gray-300 mt-3 mb-2">Ваш Email</h3>
+                    <p class="text-xs break-all text-gray-500 dark:text-gray-400" id="current-email"></p>
                 </div>
                 
                 <div>
-                    <label for="new-username-input" class="block text-sm font-medium text-gray-700 mb-1">Имя пользователя (ник)</label>
+                    <label for="new-username-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Имя пользователя (ник)</label>
                     <div class="flex gap-2">
-                        <input type="text" id="new-username-input" class="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Введите новое имя">
+                        <input type="text" id="new-username-input" class="flex-1 px-3 py-2 border dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Введите новое имя">
                         <button onclick="updateUsername()" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">Сохранить</button>
                     </div>
                     <p id="username-status" class="text-xs mt-1"></p>
                 </div>
                 
-                <div class="p-4 mt-auto border-t border-gray-100">
-                    <h3 class="text-xs font-bold text-gray-400 uppercase mb-3">Инструменты</h3>
-                    <button onclick="toggleGithubModal(true)" class="w-full flex items-center gap-3 p-2 rounded hover:bg-gray-100 text-gray-700 transition-colors text-left text-sm">
+                <div class="p-4 mt-auto border-t border-[var(--tg-border)]">
+                    <h3 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase mb-3">Инструменты</h3>
+                    <button onclick="toggleGithubModal(true)" class="w-full flex items-center gap-3 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors text-left text-sm">
                         <span class="font-mono font-bold">Git</span> Экспорт данных
                     </button>
                 </div>
@@ -276,23 +315,23 @@
         </aside>
 
         <!-- Main Chat Area -->
-        <main class="main-chat flex-1 flex flex-col h-[60vh] md:h-full bg-[var(--tg-chat-bg)] relative">
+        <main class="main-chat flex-1 flex flex-col h-[60vh] md:h-full bg-[var(--tg-chat-bg)] relative transition-colors duration-300">
             <!-- Chat Background Pattern Layer -->
-            <div class="absolute inset-0 chat-background pointer-events-none z-0"></div>
+            <div class="absolute inset-0 chat-background pointer-events-none z-0 transition-colors duration-300"></div>
 
-            <!-- Header -->
-            <header class="bg-white p-3 flex items-center gap-4 shadow-sm z-10 sticky top-0">
+            <!-- Header (Adapted for Dark Mode) -->
+            <header class="bg-white dark:bg-gray-800 p-3 flex items-center gap-4 shadow-sm z-10 sticky top-0 transition-colors duration-300 border-b border-[var(--tg-border)]">
                 <div class="md:hidden">
-                    <button onclick="switchTab('chats')" class="text-gray-500 text-2xl mr-2">←</button>
+                    <button onclick="switchTab('chats')" class="text-gray-500 dark:text-gray-400 text-2xl mr-2">←</button>
                 </div>
                 <div id="chat-icon" class="w-10 h-10 bg-gradient-to-tr from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-bold shrink-0">
                     📢
                 </div>
                 <div class="flex-1">
-                    <h2 class="font-bold text-gray-800" id="chat-title">Общий Канал</h2>
-                    <p class="text-xs text-gray-500" id="chat-status">Идет загрузка...</p>
+                    <h2 class="font-bold text-gray-800 dark:text-gray-100" id="chat-title">Общий Канал</h2>
+                    <p class="text-xs text-gray-500 dark:text-gray-400" id="chat-status">Идет загрузка...</p>
                 </div>
-                <button onclick="refreshData()" class="text-gray-400 hover:text-blue-500 p-2 text-xl">↻</button>
+                <button onclick="refreshData()" class="text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 p-2 text-xl">↻</button>
             </header>
 
             <!-- Messages List -->
@@ -300,18 +339,17 @@
                 <!-- Messages injected by JS -->
             </div>
 
-            <!-- Input Area -->
-            <div class="bg-white p-3 z-10 flex items-end gap-2 shadow-lg">
-                <button onclick="document.getElementById('file-input-wrapper').classList.toggle('hidden')" class="p-3 text-gray-400 hover:text-gray-600 transition-colors rounded-full hover:bg-gray-100">
+            <!-- Input Area (Adapted for Dark Mode) -->
+            <div class="bg-white dark:bg-gray-800 p-3 z-10 flex items-end gap-2 shadow-lg transition-colors duration-300 border-t border-[var(--tg-border)]">
+                <button onclick="document.getElementById('file-input-wrapper').classList.toggle('hidden')" class="p-3 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-400 transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
                     📎
                 </button>
                 
-                <div class="flex-1 bg-white">
-                    <div id="file-input-wrapper" class="hidden mb-2 p-2 bg-gray-50 rounded border border-gray-200">
-                        <input type="text" id="photo-url" placeholder="Вставьте URL изображения..." class="w-full bg-transparent outline-none text-sm">
+                <div class="flex-1 bg-white dark:bg-gray-800">
+                    <div id="file-input-wrapper" class="hidden mb-2 p-2 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600">
+                        <input type="text" id="photo-url" placeholder="Вставьте URL изображения..." class="w-full bg-transparent outline-none text-sm dark:text-gray-100">
                     </div>
-                    <!-- Removed onkeydown attribute to prevent CSP warning -->
-                    <textarea id="message-input" rows="1" placeholder="Написать сообщение..." class="w-full py-3 px-4 bg-gray-100 rounded-2xl outline-none resize-none focus:bg-white focus:ring-1 focus:ring-blue-500 transition-all custom-scroll"></textarea>
+                    <textarea id="message-input" rows="1" placeholder="Написать сообщение..." class="w-full py-3 px-4 bg-gray-100 dark:bg-gray-700 dark:text-gray-100 rounded-2xl outline-none resize-none focus:bg-white dark:focus:bg-gray-800 focus:ring-1 focus:ring-blue-500 transition-all custom-scroll"></textarea>
                 </div>
                 
                 <button onclick="sendMessage()" class="p-3 bg-[var(--tg-blue)] text-white rounded-full hover:bg-blue-600 transition-transform active:scale-95 shadow-md flex items-center justify-center w-12 h-12">
@@ -321,22 +359,22 @@
         </main>
     </div>
 
-    <!-- GitHub Export Modal (Unchanged) -->
+    <!-- GitHub Export Modal (Adapted for Dark Mode) -->
     <div id="github-modal" class="fixed inset-0 z-40 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 hidden">
-        <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
-            <h3 class="text-xl font-bold text-gray-800 mb-4">Экспорт истории на GitHub</h3>
-            <p class="text-sm text-gray-600 mb-4">Создает Gist или файл в репозитории с историей чата.</p>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 w-full max-w-md transition-colors">
+            <h3 class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">Экспорт истории на GitHub</h3>
+            <p class="text-sm text-gray-600 dark:text-gray-300 mb-4">Создает Gist или файл в репозитории с историей чата.</p>
             
             <div class="flex flex-col gap-3 mb-4">
-                <label class="text-xs font-bold text-gray-500 uppercase">Personal Access Token (Repo Scope)</label>
-                <input type="password" id="gh-token" placeholder="ghp_xxxxxxxxxxxx" class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-gray-800 outline-none">
+                <label class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Personal Access Token (Repo Scope)</label>
+                <input type="password" id="gh-token" placeholder="ghp_xxxxxxxxxxxx" class="w-full px-3 py-2 border dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded focus:ring-2 focus:ring-gray-800 outline-none">
                 
-                <label class="text-xs font-bold text-gray-500 uppercase">Описание Gist</label>
-                <input type="text" id="gh-desc" value="Backup: TeleKat History" class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-gray-800 outline-none">
+                <label class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Описание Gist</label>
+                <input type="text" id="gh-desc" value="Backup: TeleKat History" class="w-full px-3 py-2 border dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded focus:ring-2 focus:ring-gray-800 outline-none">
             </div>
 
             <div class="flex justify-end gap-2">
-                <button onclick="toggleGithubModal(false)" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Отмена</button>
+                <button onclick="toggleGithubModal(false)" class="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">Отмена</button>
                 <button onclick="exportToGithub()" class="px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-900 shadow">Экспорт в Gist</button>
             </div>
             <p id="gh-status" class="text-xs mt-2 text-center"></p>
@@ -352,7 +390,6 @@
 
         // --- Configuration & Initialization ---
         
-        // Log to inform user about the expected API key behavior in the environment
         console.warn("NOTE: The 'auth/invalid-api-key' error is common in this environment and usually resolves itself upon next run, as the Firebase configuration is dynamically injected.");
 
         const firebaseConfig = typeof __firebase_config !== 'undefined' 
@@ -371,11 +408,57 @@
         let charts = {};
         
         // Chat State
-        let currentChatType = 'public'; // 'public' or 'private'
-        let currentChatTarget = null; // Target UID for private chat
-        let unsubscribeChat = null; // Firestore listener for the current chat
+        let currentChatType = 'public'; 
+        let currentChatTarget = null; 
+        let unsubscribeChat = null; 
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'telekat-messenger';
+
+        // --- Theme Logic (New) ---
+
+        /**
+         * Applies the given theme to the HTML element and updates the toggle button icon.
+         * @param {string} theme 'light' or 'dark'
+         */
+        function applyTheme(theme) {
+            const htmlEl = document.documentElement;
+            const toggleButton = document.getElementById('theme-toggle');
+
+            if (theme === 'dark') {
+                htmlEl.classList.add('dark');
+                if (toggleButton) toggleButton.innerHTML = '🌙'; // Moon icon for dark mode
+            } else {
+                htmlEl.classList.remove('dark');
+                if (toggleButton) toggleButton.innerHTML = '☀️'; // Sun icon for light mode
+            }
+        }
+
+        /**
+         * Toggles the theme, saves the preference to Firestore, and updates the UI.
+         */
+        window.toggleTheme = async () => {
+            if (!currentUser || !userProfile) {
+                // If not signed in, just toggle locally for demonstration
+                const currentTheme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+                const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+                applyTheme(newTheme);
+                return;
+            }
+
+            const currentTheme = userProfile.theme || 'light';
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            
+            applyTheme(newTheme);
+            userProfile.theme = newTheme; // Update local state
+
+            const userRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}/profile/main`);
+            try {
+                await setDoc(userRef, { theme: newTheme }, { merge: true });
+                console.log(`Theme saved as: ${newTheme}`);
+            } catch (error) {
+                console.error("Error saving theme preference:", error);
+            }
+        };
 
         // --- Auth & User Profile Logic ---
         const authModal = document.getElementById('auth-modal');
@@ -386,6 +469,7 @@
         window.handleEmailAuth = (e) => e.preventDefault();
 
         window.authAction = async (type) => {
+            // ... (Auth actions remain the same)
             const email = document.getElementById('email-input').value.trim();
             const pass = document.getElementById('password-input').value.trim();
             errorText.classList.add('hidden');
@@ -410,6 +494,7 @@
         };
 
         window.signInWithGoogle = async () => {
+            // ... (Google Auth remains the same)
             const provider = new GoogleAuthProvider();
             try {
                 await signInWithPopup(auth, provider);
@@ -431,30 +516,33 @@
                     await signInAnonymously(auth);
                 }
             } catch (error) {
-                console.error("Initial sign-in failed:", error);
+                console.error("Initial sign-in failed, falling back to anonymous:", error);
                 await signInAnonymously(auth);
             }
         };
         initialAuth();
 
         onAuthStateChanged(auth, async (user) => {
-            loadingOverlay.classList.add('hidden');
             if (user) {
                 currentUser = user;
                 authModal.classList.add('hidden');
-                appContainer.classList.remove('hidden');
                 
                 await ensureUserProfile();
-                initAppListeners(); // Start listening to chat and private chat lists
-                selectChat('public', null); // Default to public chat
+                applyTheme(userProfile.theme || 'light'); // Apply saved theme
+                
+                appContainer.classList.remove('hidden');
+                loadingOverlay.classList.add('hidden');
+
+                initAppListeners();
+                selectChat('public', null); 
                 updateUserSettingsUI();
 
             } else {
                 currentUser = null;
                 userProfile = null;
                 appContainer.classList.add('hidden');
+                loadingOverlay.classList.add('hidden'); // Ensure overlay is hidden even if unauthorized
                 authModal.classList.remove('hidden');
-                // Cleanup listeners if they exist
                 if (unsubscribeChat) unsubscribeChat();
             }
         });
@@ -468,11 +556,11 @@
             if (userDoc.exists()) {
                 userProfile = userDoc.data();
             } else {
-                // Create profile if it doesn't exist
                 userProfile = {
                     uid: currentUser.uid,
                     username: currentUser.email ? currentUser.email.split('@')[0] : `user_${currentUser.uid.substring(0, 6)}`,
                     email: currentUser.email || 'anonymous',
+                    theme: 'light', // Default theme
                     createdAt: serverTimestamp()
                 };
                 await setDoc(userRef, userProfile);
@@ -481,7 +569,7 @@
             document.getElementById('user-username').title = `ID: ${currentUser.uid}`;
         }
         
-        // 2. Update Username Logic
+        // 2. Update Username Logic (Remains the same)
         window.updateUsername = async () => {
             if (!currentUser) return;
             const newUsername = document.getElementById('new-username-input').value.trim();
@@ -493,16 +581,14 @@
                 return;
             }
             
-            // In a real app, we'd check for username uniqueness here.
-            
             const userRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}/profile/main`);
             try {
                 await setDoc(userRef, { username: newUsername }, { merge: true });
-                userProfile.username = newUsername; // Update local state
+                userProfile.username = newUsername; 
                 document.getElementById('user-username').textContent = `@${userProfile.username}`;
                 status.textContent = "Имя пользователя успешно обновлено!";
                 status.className = "text-xs mt-1 text-green-600";
-                updateUserSettingsUI(); // Refresh settings view
+                updateUserSettingsUI(); 
             } catch (error) {
                 console.error("Error updating username:", error);
                 status.textContent = `Ошибка при сохранении: ${error.message}`;
@@ -518,7 +604,7 @@
             }
         }
         
-        // 3. User Search Logic
+        // 3. User Search Logic (Remains the same)
         window.toggleSearchModal = (show) => {
             document.getElementById('search-modal').classList.toggle('hidden', !show);
             document.getElementById('search-results').innerHTML = '';
@@ -535,25 +621,21 @@
                 return;
             }
             
-            // SIMULATION: We simulate finding the user by matching the current user's data.
-            // In a real application with public data, a dedicated 'user_lookup' collection would be used.
             let foundUsers = [];
             if (userProfile.username.toLowerCase().includes(queryText) || currentUser.uid.toLowerCase().includes(queryText)) {
                 foundUsers.push(userProfile);
             }
             
-            // Display results
             resultsDiv.innerHTML = '';
             if (foundUsers.length === 0) {
-                resultsDiv.innerHTML = '<p class="text-sm text-gray-500">Пользователи не найдены.</p>';
+                resultsDiv.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">Пользователи не найдены.</p>';
             } else {
                 foundUsers.forEach(user => {
-                    // Only show self if anonymous, otherwise search for others (simulated)
                     if (user.uid !== currentUser.uid) {
                         const resultItem = document.createElement('div');
-                        resultItem.className = 'flex items-center justify-between p-2 bg-gray-50 rounded hover:bg-gray-100 transition-colors cursor-pointer';
+                        resultItem.className = 'flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer';
                         resultItem.innerHTML = `
-                            <p class="text-sm font-medium">@${user.username} <span class="text-xs text-gray-400">(${user.uid.substring(0, 6)}...)</span></p>
+                            <p class="text-sm font-medium dark:text-gray-200">@${user.username} <span class="text-xs text-gray-400 dark:text-gray-500">(${user.uid.substring(0, 6)}...)</span></p>
                             <button onclick="selectChat('private', '${user.uid}'); toggleSearchModal(false);" class="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600">
                                 Чат
                             </button>
@@ -564,22 +646,15 @@
             }
         };
 
-        // 4. Listeners for Private Chat List
-        function initAppListeners() {
-            // Note: In a larger app, this would listen to a 'chats' meta collection
-            // to show active private chats dynamically. For this version, the private chat 
-            // is added to the sidebar only when explicitly opened.
-        }
-
+        // 4. Listeners for Private Chat List (Remains the same)
+        function initAppListeners() { }
 
         // --- Chat Logic ---
 
         function getChatCollectionPath(type, targetId) {
             if (type === 'public') {
-                // Public collection path: /artifacts/{appId}/public/data/messages
                 return `artifacts/${appId}/public/data/messages`;
             } else {
-                // Private chat path: /artifacts/{appId}/chats/{UID_sorted}/messages
                 const uids = [currentUser.uid, targetId].sort();
                 const chatId = uids.join('_');
                 return `artifacts/${appId}/chats/${chatId}/messages`;
@@ -594,25 +669,23 @@
             }
         }
         
-        // 5. Chat Switching Logic
+        // 5. Chat Switching Logic (Remains the same)
         window.selectChat = async (type, targetId) => {
             if (!currentUser) return;
             
-            // Cleanup previous listener
             if (unsubscribeChat) unsubscribeChat();
 
             currentChatType = type;
             currentChatTarget = null;
             
             const messagesContainer = document.getElementById('messages-container');
-            messagesContainer.innerHTML = '<div class="p-4 text-gray-500 text-center">Загрузка истории...</div>';
+            messagesContainer.innerHTML = '<div class="p-4 text-gray-500 text-center dark:text-gray-400">Загрузка истории...</div>';
             
             let collectionPath = '';
 
             if (type === 'public') {
                 collectionPath = getChatCollectionPath('public');
             } else {
-                // Fetch target user profile for display name
                 if (targetId) {
                     const targetRef = doc(db, `artifacts/${appId}/users/${targetId}/profile/main`);
                     const targetDoc = await getDoc(targetRef);
@@ -626,26 +699,23 @@
                 }
             }
 
-            // Update UI Header
             const headerInfo = getChatTitle(currentChatType, currentChatTarget ? currentChatTarget.uid : null);
             document.getElementById('chat-title').textContent = headerInfo.title;
             document.getElementById('chat-icon').textContent = headerInfo.icon;
             document.getElementById('chat-status').textContent = type === 'public' ? 'Все участники' : `Ваш ID: ${currentUser.uid.substring(0, 6)}...`;
             
-            // Mark selected chat in sidebar
-            document.querySelectorAll('#view-chats > div, #private-chats-list > div').forEach(el => el.classList.remove('bg-blue-50'));
+            document.querySelectorAll('#view-chats > div, #private-chats-list > div').forEach(el => el.classList.remove('bg-blue-50', 'dark:bg-blue-900'));
             
             if (type === 'public') {
-                 document.getElementById(`chat-public`).classList.add('bg-blue-50');
+                 document.getElementById(`chat-public`).classList.add('bg-blue-50', 'dark:bg-blue-900');
             } else if (currentChatTarget) {
                  const privateChatId = `chat-${currentChatTarget.uid}`;
                  const existingChat = document.getElementById(privateChatId);
                  if (existingChat) {
-                     existingChat.classList.add('bg-blue-50');
+                     existingChat.classList.add('bg-blue-50', 'dark:bg-blue-900');
                  }
             }
             
-            // Start listening to the new chat collection
             const q = query(collection(db, collectionPath), orderBy("timestamp", "desc"), limit(100));
             
             unsubscribeChat = onSnapshot(q, (snapshot) => {
@@ -657,7 +727,7 @@
                 renderMessages();
                 updateStats();
                 if (currentChatType === 'private') {
-                    updatePrivateChatListUI(); // Ensure private chat item is added/updated on new message
+                    updatePrivateChatListUI(); 
                 }
             }, (error) => {
                  console.error("Firestore error onSnapshot:", error);
@@ -669,7 +739,6 @@
         function updatePrivateChatListUI() {
             const listContainer = document.getElementById('private-chats-list');
             
-            // Check if the current chat is private and add it to the list if not present
             if (currentChatType === 'private' && currentChatTarget) {
                 const targetId = currentChatTarget.uid;
                 const privateChatId = `chat-${targetId}`;
@@ -678,26 +747,25 @@
                 if (!existingItem) {
                     const chatItem = document.createElement('div');
                     chatItem.id = privateChatId;
-                    chatItem.className = 'p-3 flex gap-3 hover:bg-gray-100 cursor-pointer transition-colors';
+                    chatItem.className = 'p-3 flex gap-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors';
                     chatItem.onclick = () => selectChat('private', targetId);
                     
                     chatItem.innerHTML = `
-                        <div class="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center text-gray-700 font-bold text-lg shrink-0">
+                        <div class="w-12 h-12 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center text-gray-700 dark:text-gray-300 font-bold text-lg shrink-0">
                             ${currentChatTarget.username.substring(0, 2).toUpperCase()}
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="flex justify-between items-baseline mb-1">
-                                <span class="font-semibold text-gray-800">@${currentChatTarget.username}</span>
-                                <span class="text-xs text-gray-400" id="${privateChatId}-last-time">...</span>
+                                <span class="font-semibold text-gray-800 dark:text-gray-200">@${currentChatTarget.username}</span>
+                                <span class="text-xs text-gray-400 dark:text-gray-500" id="${privateChatId}-last-time">...</span>
                             </div>
-                            <p class="text-sm text-gray-500 truncate" id="${privateChatId}-last-msg-preview">Новый чат</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 truncate" id="${privateChatId}-last-msg-preview">Новый чат</p>
                         </div>
                     `;
                     listContainer.appendChild(chatItem);
                     existingItem = chatItem;
                 }
                 
-                // Update last message and time
                 if (messages.length > 0) {
                     const last = messages[messages.length - 1];
                     const d = last.timestamp ? last.timestamp.toDate() : new Date();
@@ -706,9 +774,8 @@
                     document.getElementById(`${privateChatId}-last-time`).textContent = timeStr;
                 }
 
-                // Mark the current one as selected
-                document.querySelectorAll('#view-chats > div, #private-chats-list > div').forEach(el => el.classList.remove('bg-blue-50'));
-                existingItem.classList.add('bg-blue-50');
+                document.querySelectorAll('#view-chats > div, #private-chats-list > div').forEach(el => el.classList.remove('bg-blue-50', 'dark:bg-blue-900'));
+                existingItem.classList.add('bg-blue-50', 'dark:bg-blue-900');
             }
         }
         
@@ -723,7 +790,8 @@
                 const wrapper = document.createElement('div');
                 wrapper.className = `flex w-full mb-1 ${isMe ? 'justify-end' : 'justify-start'}`;
                 
-                const bgClass = isMe ? 'bg-[var(--tg-msg-out)]' : 'bg-white';
+                // Use CSS variables for theme compatibility
+                const bgClass = isMe ? 'bg-[var(--tg-msg-out)]' : 'bg-[var(--tg-msg-in)]';
                 
                 const content = msg.photoUrl 
                     ? `<img src="${msg.photoUrl}" class="rounded-lg max-w-[200px] mb-1 block" onerror="this.style.display='none'">` 
@@ -734,16 +802,16 @@
 
                 const senderName = msg.senderUsername || (msg.senderId ? msg.senderId.substring(0, 8) : 'Anon');
                 const showName = !isMe && msg.senderId !== lastSenderId;
-                const nameHtml = showName ? `<div class="text-xs font-bold text-blue-500 mb-1">${senderName}</div>` : '';
+                const nameHtml = showName ? `<div class="text-xs font-bold text-[var(--tg-blue)] mb-1">${senderName}</div>` : '';
 
                 wrapper.innerHTML = `
-                    <div class="relative max-w-[80%] md:max-w-[60%] ${bgClass} rounded-xl px-3 py-2 shadow-sm text-sm text-gray-800 break-words">
+                    <div class="relative max-w-[80%] md:max-w-[60%] ${bgClass} rounded-xl px-3 py-2 shadow-sm text-sm text-[var(--tg-text)] break-words transition-colors duration-300">
                         ${nameHtml}
                         ${content}
                         <span>${msg.text}</span>
-                        <div class="float-right pt-2 pl-2 text-[10px] text-gray-400 select-none flex items-center gap-1">
+                        <div class="float-right pt-2 pl-2 text-[10px] text-[var(--tg-subtext)] select-none flex items-center gap-1">
                             ${timeStr}
-                            ${isMe ? '<span class="text-blue-500 font-bold">✓✓</span>' : ''}
+                            ${isMe ? '<span class="text-[var(--tg-blue)] font-bold">✓✓</span>' : ''}
                         </div>
                     </div>
                 `;
@@ -785,7 +853,7 @@
                     text: text,
                     photoUrl: photoUrl,
                     senderId: currentUser.uid,
-                    senderUsername: userProfile.username, // Use username
+                    senderUsername: userProfile.username, 
                     timestamp: serverTimestamp()
                 });
                 input.value = '';
@@ -798,7 +866,6 @@
             }
         };
         
-        // Custom keydown handler for Enter key
         function handleEnter(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -806,7 +873,6 @@
             }
         }
         
-        // Attach event listener after the DOM is ready
         document.addEventListener('DOMContentLoaded', () => {
              const messageInput = document.getElementById('message-input');
              if (messageInput) {
@@ -828,10 +894,10 @@
                 tabs[t].tab.classList.toggle('text-blue-500', isSelected);
                 tabs[t].tab.classList.toggle('border-blue-500', isSelected);
                 tabs[t].tab.classList.toggle('text-gray-500', !isSelected);
+                tabs[t].tab.classList.toggle('dark:text-gray-400', !isSelected);
                 tabs[t].tab.classList.toggle('border-b-2', isSelected);
             });
             
-            // Hide settings panel when switching tabs
             document.getElementById('view-settings').classList.add('hidden');
 
             if (tab === 'analytics') updateStats();
@@ -844,10 +910,9 @@
             });
             document.getElementById(`view-${view}`).classList.remove('hidden');
             
-            // Unselect tabs when viewing settings
             document.querySelectorAll('[id^="tab-"]').forEach(el => {
                 el.classList.remove('text-blue-500', 'border-blue-500', 'border-b-2');
-                el.classList.add('text-gray-500');
+                el.classList.add('text-gray-500', 'dark:text-gray-400');
             });
 
             if (view === 'settings') updateUserSettingsUI();
@@ -856,6 +921,13 @@
         // --- Analytics (Chart.js) ---
         function updateStats() {
             if (document.getElementById('view-analytics').classList.contains('hidden')) return;
+
+            const isDark = document.documentElement.classList.contains('dark');
+            const chartColor = isDark ? '#4a91ff' : '#3390ec';
+            const chartGridColor = isDark ? '#374151' : '#e5e7eb';
+            const chartTextColor = isDark ? '#f3f4f6' : '#1f2937';
+            const chartTimeColor = isDark ? '#4ade80' : '#22c55e';
+
 
             // 1. User Activity
             const userCounts = {};
@@ -874,18 +946,29 @@
                     datasets: [{
                         label: 'Сообщения',
                         data: Object.values(userCounts),
-                        backgroundColor: '#3390ec',
+                        backgroundColor: chartColor,
                         borderRadius: 4
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: true } }
+                    plugins: { legend: { labels: { color: chartTextColor } } },
+                    scales: { 
+                        y: { 
+                            beginAtZero: true, 
+                            grid: { color: chartGridColor },
+                            ticks: { color: chartTextColor }
+                        },
+                        x: {
+                            grid: { color: chartGridColor },
+                            ticks: { color: chartTextColor }
+                        }
+                    }
                 }
             });
 
-            // 2. Timeline (Simplified: Messages per hour of day)
+            // 2. Timeline
             const timeCounts = Array(24).fill(0);
             messages.forEach(m => {
                 if (m.timestamp) {
@@ -904,20 +987,32 @@
                     datasets: [{
                         label: 'Активность по часам',
                         data: timeCounts,
-                        borderColor: '#4ade80',
-                        backgroundColor: 'rgba(74, 222, 128, 0.2)',
+                        borderColor: chartTimeColor,
+                        backgroundColor: isDark ? 'rgba(74, 222, 128, 0.2)' : 'rgba(34, 197, 94, 0.2)',
                         fill: true,
                         tension: 0.4
                     }]
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: false
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: chartTextColor } } },
+                    scales: { 
+                        y: { 
+                            beginAtZero: true, 
+                            grid: { color: chartGridColor },
+                            ticks: { color: chartTextColor }
+                        },
+                        x: {
+                            grid: { color: chartGridColor },
+                            ticks: { color: chartTextColor }
+                        }
+                    }
                 }
             });
         }
 
-        // --- GitHub Export Logic (Unchanged) ---
+        // --- GitHub Export Logic (Remains the same) ---
         window.toggleGithubModal = (show) => {
             const modal = document.getElementById('github-modal');
             if (show) modal.classList.remove('hidden');
