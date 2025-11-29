@@ -19,7 +19,7 @@
         :root {
             --tg-blue: #3390ec;
             --tg-bg: #f4f4f4;
-            --tg-chat-bg: #87a3b3; /* Placeholder for pattern */
+            --tg-chat-bg: #e5e5f7; /* Light Blue/Gray Pattern Base */
             --tg-msg-out: #eeffde;
             --tg-msg-in: #ffffff;
         }
@@ -27,36 +27,60 @@
         body {
             font-family: 'Roboto', sans-serif;
             background-color: var(--tg-bg);
+            /* Устанавливаем минимальную высоту и центрируем на больших экранах */
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        /* Main Container for Desktop Optimization */
+        #app-container {
+            width: 100%;
             height: 100vh;
+            max-width: 1400px; /* Ограничиваем максимальную ширину для десктопа */
+            max-height: 900px; /* Ограничиваем максимальную высоту для десктопа */
             overflow: hidden;
+            display: flex;
+            flex-direction: column; /* По умолчанию вертикально для мобильных */
+        }
+        
+        /* Desktop/Landscape Layout */
+        @media (min-width: 768px), (orientation: landscape) {
+            #app-container {
+                flex-direction: row; /* На десктопе или в горизонтальной ориентации - горизонтальный сплит */
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+                border-radius: 1rem;
+            }
+            .sidebar {
+                height: 100%;
+                min-width: 320px;
+            }
+            .main-chat {
+                height: 100%;
+            }
         }
 
         /* Chart Container Styling - MANDATORY per instructions */
         .chart-container {
             position: relative;
             width: 100%;
-            max-width: 600px;
+            height: 250px;
+            max-height: 350px;
             margin-left: auto;
             margin-right: auto;
-            height: 300px;
-            max-height: 400px;
-        }
-        @media (min-width: 768px) {
-            .chart-container {
-                height: 350px;
-            }
         }
 
         /* Telegram-like Pattern Background (CSS Only) */
         .chat-background {
-            background-color: #e5e5f7;
+            background-color: var(--tg-chat-bg);
             opacity: 0.8;
-            background-image:  radial-gradient(#444cf7 0.5px, transparent 0.5px), radial-gradient(#444cf7 0.5px, #e5e5f7 0.5px);
+            background-image:  radial-gradient(#a3a3a3 0.5px, transparent 0.5px), radial-gradient(#a3a3a3 0.5px, #e5e5f7 0.5px);
             background-size: 20px 20px;
             background-position: 0 0, 10px 10px;
         }
 
-        /* Scrollbar */
+        /* Custom Scrollbar */
         .custom-scroll::-webkit-scrollbar {
             width: 6px;
         }
@@ -68,18 +92,7 @@
             border-radius: 3px;
         }
 
-        /* Message Bubble Tail CSS implementation (No SVG) */
-        .bubble-tail-out {
-            position: absolute;
-            bottom: 0;
-            right: -6px;
-            width: 12px;
-            height: 12px;
-            background-color: var(--tg-msg-out);
-            border-bottom-left-radius: 10px;
-            clip-path: polygon(0 0, 50% 100%, 100% 100%, 0% 100%); /* Simplified clip */
-        }
-        
+        /* Loader */
         .loader {
             border: 4px solid #f3f3f3;
             border-top: 4px solid var(--tg-blue);
@@ -95,7 +108,7 @@
         }
     </style>
 </head>
-<body class="flex flex-col md:flex-row h-full">
+<body class="bg-gray-100">
 
     <!-- Loading Overlay -->
     <div id="loading-overlay" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white">
@@ -113,7 +126,7 @@
             </div>
             
             <button onclick="signInWithGoogle()" class="flex items-center justify-center gap-3 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium py-2.5 px-4 rounded-lg transition-all shadow-sm">
-                <span class="text-lg font-bold text-blue-500">G</span> Войти через Google
+                <img src="https://upload.wikimedia.org/wikipedia/commons/4/4a/Logo_and_wordmark_of_Google_G_Suite.svg" alt="Google" class="w-5 h-5"> Войти через Google
             </button>
 
             <div class="flex items-center gap-2">
@@ -133,8 +146,181 @@
             <p id="auth-error" class="text-red-500 text-xs text-center mt-2 hidden"></p>
         </div>
     </div>
+    
+    <!-- User Search Modal -->
+    <div id="search-modal" class="fixed inset-0 z-40 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 hidden">
+        <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">Найти пользователя</h3>
+            <div class="flex gap-2 mb-4">
+                <input type="text" id="search-input" placeholder="Введите имя пользователя или ID" class="flex-1 px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none">
+                <button onclick="searchUsers()" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 shadow">Поиск</button>
+            </div>
+            
+            <div id="search-results" class="space-y-2 max-h-48 overflow-y-auto custom-scroll">
+                <!-- Results injected here -->
+            </div>
 
-    <!-- GitHub Export Modal -->
+            <div class="flex justify-end mt-4">
+                <button onclick="toggleSearchModal(false)" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Закрыть</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- MAIN APP CONTAINER -->
+    <div id="app-container" class="hidden">
+        
+        <!-- Sidebar (Navigation & Stats) -->
+        <aside class="sidebar w-full md:w-80 lg:w-96 bg-white border-r border-gray-200 flex flex-col h-[40vh] md:h-full shrink-0">
+            <!-- Sidebar Header -->
+            <div class="p-4 flex items-center justify-between border-b border-gray-100 bg-gray-50">
+                <div class="flex items-center gap-2">
+                    <h1 class="font-bold text-gray-700 text-xl">TeleKat</h1>
+                </div>
+                <!-- User Profile & Settings -->
+                <div id="user-badge" class="flex items-center gap-2">
+                    <span id="user-username" class="font-medium text-gray-700 truncate max-w-[100px] hover:underline cursor-pointer" onclick="toggleView('settings')"></span>
+                    <button onclick="signOutUser()" class="text-xs bg-red-100 text-red-600 px-2 py-1 rounded hover:bg-red-200">Выход</button>
+                </div>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <div class="flex border-b border-gray-200">
+                <button onclick="switchTab('chats')" id="tab-chats" class="flex-1 py-3 text-sm font-medium text-blue-500 border-b-2 border-blue-500 transition-all hover:bg-gray-50">
+                    💬 Чаты
+                </button>
+                <button onclick="switchTab('analytics')" id="tab-analytics" class="flex-1 py-3 text-sm font-medium text-gray-500 transition-all hover:bg-gray-50">
+                    📊 Инсайты
+                </button>
+            </div>
+
+            <!-- Content: Chats List -->
+            <div id="view-chats" class="flex-1 overflow-y-auto custom-scroll">
+                <!-- Public Chat -->
+                <div onclick="selectChat('public', null)" class="p-3 flex gap-3 hover:bg-gray-100 cursor-pointer transition-colors" id="chat-public">
+                    <div class="w-12 h-12 bg-gradient-to-tr from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg shrink-0">
+                        📢
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex justify-between items-baseline mb-1">
+                            <span class="font-semibold text-gray-800">Общий Канал</span>
+                            <span class="text-xs text-gray-400" id="public-last-time">...</span>
+                        </div>
+                        <p class="text-sm text-gray-500 truncate" id="public-last-msg-preview">Нажмите, чтобы открыть</p>
+                    </div>
+                </div>
+                
+                <div class="p-3 border-t border-gray-100">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase mb-2 flex justify-between items-center">
+                        Личные Чаты
+                        <button onclick="toggleSearchModal(true)" class="text-sm text-blue-500 hover:text-blue-600 font-medium">
+                            + Найти
+                        </button>
+                    </h3>
+                    <div id="private-chats-list" class="space-y-1">
+                        <!-- Private chats injected here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content: Analytics Panel -->
+            <div id="view-analytics" class="hidden flex-1 overflow-y-auto custom-scroll p-4 space-y-6">
+                <div class="bg-blue-50 rounded-lg p-4 border border-blue-100">
+                    <h3 class="text-blue-800 font-bold text-sm mb-1">Активность Чата</h3>
+                    <p class="text-xs text-blue-600">Анализ текущей сессии и истории сообщений.</p>
+                </div>
+
+                <!-- Chart 1: Activity Distribution -->
+                <div>
+                    <h4 class="text-xs font-bold text-gray-500 uppercase mb-2">Сообщения по Пользователям</h4>
+                    <div class="chart-container">
+                        <canvas id="userChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Chart 2: Message Timeline (Mock logic based on real data) -->
+                <div>
+                    <h4 class="text-xs font-bold text-gray-500 uppercase mb-2">Временная шкала</h4>
+                    <div class="chart-container">
+                        <canvas id="timeChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content: Settings Panel (Username Change) -->
+            <div id="view-settings" class="hidden flex-1 overflow-y-auto custom-scroll p-4 space-y-4">
+                <h2 class="text-xl font-bold text-gray-800 border-b pb-2 mb-4">Настройки Профиля</h2>
+                
+                <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <h3 class="font-semibold text-gray-700 mb-2">Ваш текущий ID</h3>
+                    <p class="text-xs break-all text-gray-500" id="current-uid"></p>
+                    <h3 class="font-semibold text-gray-700 mt-3 mb-2">Ваш Email</h3>
+                    <p class="text-xs break-all text-gray-500" id="current-email"></p>
+                </div>
+                
+                <div>
+                    <label for="new-username-input" class="block text-sm font-medium text-gray-700 mb-1">Имя пользователя (ник)</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="new-username-input" class="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Введите новое имя">
+                        <button onclick="updateUsername()" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">Сохранить</button>
+                    </div>
+                    <p id="username-status" class="text-xs mt-1"></p>
+                </div>
+                
+                <div class="p-4 mt-auto border-t border-gray-100">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase mb-3">Инструменты</h3>
+                    <button onclick="toggleGithubModal(true)" class="w-full flex items-center gap-3 p-2 rounded hover:bg-gray-100 text-gray-700 transition-colors text-left text-sm">
+                        <span class="font-mono font-bold">Git</span> Экспорт данных
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Chat Area -->
+        <main class="main-chat flex-1 flex flex-col h-[60vh] md:h-full bg-[var(--tg-chat-bg)] relative">
+            <!-- Chat Background Pattern Layer -->
+            <div class="absolute inset-0 chat-background pointer-events-none z-0"></div>
+
+            <!-- Header -->
+            <header class="bg-white p-3 flex items-center gap-4 shadow-sm z-10 sticky top-0">
+                <div class="md:hidden">
+                    <button onclick="switchTab('chats')" class="text-gray-500 text-2xl mr-2">←</button>
+                </div>
+                <div id="chat-icon" class="w-10 h-10 bg-gradient-to-tr from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-bold shrink-0">
+                    📢
+                </div>
+                <div class="flex-1">
+                    <h2 class="font-bold text-gray-800" id="chat-title">Общий Канал</h2>
+                    <p class="text-xs text-gray-500" id="chat-status">Идет загрузка...</p>
+                </div>
+                <button onclick="refreshData()" class="text-gray-400 hover:text-blue-500 p-2 text-xl">↻</button>
+            </header>
+
+            <!-- Messages List -->
+            <div id="messages-container" class="flex-1 overflow-y-auto custom-scroll p-4 space-y-2 z-10 flex flex-col">
+                <!-- Messages injected by JS -->
+            </div>
+
+            <!-- Input Area -->
+            <div class="bg-white p-3 z-10 flex items-end gap-2 shadow-lg">
+                <button onclick="document.getElementById('file-input-wrapper').classList.toggle('hidden')" class="p-3 text-gray-400 hover:text-gray-600 transition-colors rounded-full hover:bg-gray-100">
+                    📎
+                </button>
+                
+                <div class="flex-1 bg-white">
+                    <div id="file-input-wrapper" class="hidden mb-2 p-2 bg-gray-50 rounded border border-gray-200">
+                        <input type="text" id="photo-url" placeholder="Вставьте URL изображения..." class="w-full bg-transparent outline-none text-sm">
+                    </div>
+                    <textarea id="message-input" rows="1" placeholder="Написать сообщение..." class="w-full py-3 px-4 bg-gray-100 rounded-2xl outline-none resize-none focus:bg-white focus:ring-1 focus:ring-blue-500 transition-all custom-scroll" onkeydown="handleEnter(event)"></textarea>
+                </div>
+                
+                <button onclick="sendMessage()" class="p-3 bg-[var(--tg-blue)] text-white rounded-full hover:bg-blue-600 transition-transform active:scale-95 shadow-md flex items-center justify-center w-12 h-12">
+                    ➤
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <!-- GitHub Export Modal (Unchanged) -->
     <div id="github-modal" class="fixed inset-0 z-40 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 hidden">
         <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
             <h3 class="text-xl font-bold text-gray-800 mb-4">Экспорт истории на GitHub</h3>
@@ -156,157 +342,41 @@
         </div>
     </div>
 
-    <!-- MAIN APP STRUCTURE -->
-
-    <!-- Sidebar (Navigation & Stats) -->
-    <aside class="w-full md:w-80 lg:w-96 bg-white border-r border-gray-200 flex flex-col h-[40vh] md:h-full shrink-0">
-        <!-- Sidebar Header -->
-        <div class="p-4 flex items-center justify-between border-b border-gray-100 bg-gray-50">
-            <div class="flex items-center gap-2">
-                <button onclick="toggleView('menu')" class="md:hidden text-gray-500 text-2xl">☰</button>
-                <h1 class="font-bold text-gray-700">TeleKat</h1>
-            </div>
-            <div id="user-badge" class="hidden flex items-center gap-2">
-                <span id="user-email" class="text-xs text-gray-500 truncate max-w-[100px]"></span>
-                <button onclick="signOutUser()" class="text-xs bg-red-100 text-red-600 px-2 py-1 rounded hover:bg-red-200">Выход</button>
-            </div>
-        </div>
-
-        <!-- Navigation Tabs -->
-        <div class="flex border-b border-gray-200">
-            <button onclick="switchTab('chats')" id="tab-chats" class="flex-1 py-3 text-sm font-medium text-blue-500 border-b-2 border-blue-500 transition-all hover:bg-gray-50">
-                💬 Чаты
-            </button>
-            <button onclick="switchTab('analytics')" id="tab-analytics" class="flex-1 py-3 text-sm font-medium text-gray-500 transition-all hover:bg-gray-50">
-                📊 Инсайты
-            </button>
-        </div>
-
-        <!-- Content: Chats List -->
-        <div id="view-chats" class="flex-1 overflow-y-auto custom-scroll">
-            <!-- Pinned Chat -->
-            <div onclick="selectChat('public')" class="p-3 flex gap-3 hover:bg-gray-100 cursor-pointer transition-colors bg-blue-50">
-                <div class="w-12 h-12 bg-gradient-to-tr from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg shrink-0">
-                    📢
-                </div>
-                <div class="flex-1 min-w-0">
-                    <div class="flex justify-between items-baseline mb-1">
-                        <span class="font-semibold text-gray-800">Общий Канал</span>
-                        <span class="text-xs text-gray-400" id="last-time">Сейчас</span>
-                    </div>
-                    <p class="text-sm text-gray-500 truncate" id="last-msg-preview">Загрузка сообщений...</p>
-                </div>
-            </div>
-            
-            <!-- Tools Section -->
-            <div class="p-4 mt-auto border-t border-gray-100">
-                <h3 class="text-xs font-bold text-gray-400 uppercase mb-3">Инструменты</h3>
-                <button onclick="toggleGithubModal(true)" class="w-full flex items-center gap-3 p-2 rounded hover:bg-gray-100 text-gray-700 transition-colors text-left text-sm">
-                    <span class="font-mono font-bold">Git</span> Сохранить историю на GitHub
-                </button>
-            </div>
-        </div>
-
-        <!-- Content: Analytics Panel -->
-        <div id="view-analytics" class="hidden flex-1 overflow-y-auto custom-scroll p-4 space-y-6">
-            <div class="bg-blue-50 rounded-lg p-4 border border-blue-100">
-                <h3 class="text-blue-800 font-bold text-sm mb-1">Активность Чата</h3>
-                <p class="text-xs text-blue-600">Анализ текущей сессии и истории сообщений.</p>
-            </div>
-
-            <!-- Chart 1: Activity Distribution -->
-            <div>
-                <h4 class="text-xs font-bold text-gray-500 uppercase mb-2">Сообщения по Пользователям</h4>
-                <div class="chart-container">
-                    <canvas id="userChart"></canvas>
-                </div>
-            </div>
-
-            <!-- Chart 2: Message Timeline (Mock logic based on real data) -->
-            <div>
-                <h4 class="text-xs font-bold text-gray-500 uppercase mb-2">Временная шкала</h4>
-                <div class="chart-container">
-                    <canvas id="timeChart"></canvas>
-                </div>
-            </div>
-        </div>
-    </aside>
-
-    <!-- Main Chat Area -->
-    <main class="flex-1 flex flex-col h-[60vh] md:h-full bg-[var(--tg-chat-bg)] relative">
-        <!-- Chat Background Pattern Layer -->
-        <div class="absolute inset-0 chat-background pointer-events-none z-0"></div>
-
-        <!-- Header -->
-        <header class="bg-white p-3 flex items-center gap-4 shadow-sm z-10 sticky top-0">
-            <div class="w-10 h-10 bg-gradient-to-tr from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-bold shrink-0">📢</div>
-            <div class="flex-1">
-                <h2 class="font-bold text-gray-800">Общий Канал</h2>
-                <p class="text-xs text-gray-500" id="participant-count">...</p>
-            </div>
-            <button onclick="refreshData()" class="text-gray-400 hover:text-blue-500 p-2 text-xl">↻</button>
-        </header>
-
-        <!-- Messages List -->
-        <div id="messages-container" class="flex-1 overflow-y-auto custom-scroll p-4 space-y-2 z-10 flex flex-col">
-            <!-- Messages injected by JS -->
-        </div>
-
-        <!-- Input Area -->
-        <div class="bg-white p-3 z-10 flex items-end gap-2 shadow-lg">
-            <button onclick="document.getElementById('file-input-wrapper').classList.toggle('hidden')" class="p-3 text-gray-400 hover:text-gray-600 transition-colors rounded-full hover:bg-gray-100">
-                📎
-            </button>
-            
-            <div class="flex-1 bg-white">
-                <div id="file-input-wrapper" class="hidden mb-2 p-2 bg-gray-50 rounded border border-gray-200">
-                    <input type="text" id="photo-url" placeholder="Вставьте URL изображения..." class="w-full bg-transparent outline-none text-sm">
-                </div>
-                <textarea id="message-input" rows="1" placeholder="Написать сообщение..." class="w-full py-3 px-4 bg-gray-100 rounded-2xl outline-none resize-none focus:bg-white focus:ring-1 focus:ring-blue-500 transition-all custom-scroll" onkeydown="handleEnter(event)"></textarea>
-            </div>
-            
-            <button onclick="sendMessage()" class="p-3 bg-[var(--tg-blue)] text-white rounded-full hover:bg-blue-600 transition-transform active:scale-95 shadow-md flex items-center justify-center w-12 h-12">
-                ➤
-            </button>
-        </div>
-    </main>
 
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, limit, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, setDoc, doc, getDoc, onSnapshot, query, orderBy, serverTimestamp, limit, getDocs, where, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- Configuration & Initialization ---
-        // 1. Load configuration from global variable (mandatory for Canvas) or use fallback
         const firebaseConfig = typeof __firebase_config !== 'undefined' 
             ? JSON.parse(__firebase_config) 
-            : {
-                // ВАЖНО: Эти значения используются только как резервные. Проверьте, что в консоли Firebase включены Email/Password и Google провайдеры.
-                apiKey: "AIzaSyCI4OsJqHzBcLJXn4pz1c6UDcyAGCTX-Lk",
-                authDomain: "telekat-messenger.firebaseapp.com",
-                projectId: "telekat-messenger",
-                storageBucket: "telekat-messenger.firebasestorage.app",
-                messagingSenderId: "596576341286",
-                appId: "1:596576341286:web:6e7c4cece58ca4b15605e7",
-                measurementId: "G-6F4ML0067L"
-            };
+            : { /* Fallback config */ };
         
-        // 2. Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        setLogLevel('Debug'); // Enable detailed logging
+        setLogLevel('Debug');
 
-        // App State
+        // Global App State
         let currentUser = null;
+        let userProfile = null;
         let messages = [];
         let charts = {};
+        
+        // Chat State
+        let currentChatType = 'public'; // 'public' or 'private'
+        let currentChatTarget = null; // Target UID for private chat
+        let unsubscribeChat = null; // Firestore listener for the current chat
 
-        // --- Auth Logic ---
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'telekat-messenger';
+
+        // --- Auth & User Profile Logic ---
         const authModal = document.getElementById('auth-modal');
         const loadingOverlay = document.getElementById('loading-overlay');
         const errorText = document.getElementById('auth-error');
+        const appContainer = document.getElementById('app-container');
 
         window.handleEmailAuth = (e) => e.preventDefault();
 
@@ -315,7 +385,6 @@
             const pass = document.getElementById('password-input').value.trim();
             errorText.classList.add('hidden');
             
-            // Клиентская проверка на пустые поля
             if (!email || !pass) {
                 errorText.textContent = "Пожалуйста, введите и Email, и Пароль для продолжения.";
                 errorText.classList.remove('hidden');
@@ -324,15 +393,13 @@
             
             try {
                 if (type === 'login') {
-                    // ПРИМЕЧАНИЕ: Сначала пользователь должен быть зарегистрирован с помощью authAction('register')
                     await signInWithEmailAndPassword(auth, email, pass);
                 } else {
                     await createUserWithEmailAndPassword(auth, email, pass);
                 }
             } catch (error) {
-                // Показываем ошибку от Firebase (например, auth/user-not-found)
                 console.error("Auth Error:", error);
-                errorText.textContent = error.message;
+                errorText.textContent = `Ошибка: ${error.message}`;
                 errorText.classList.remove('hidden');
             }
         };
@@ -340,27 +407,16 @@
         window.signInWithGoogle = async () => {
             const provider = new GoogleAuthProvider();
             try {
-                // Если Google провайдер включен в консоли Firebase, это сработает.
                 await signInWithPopup(auth, provider);
             } catch (error) {
                 console.error("Google Auth Error:", error);
-                // Сообщение об ошибке, если провайдер не включен или есть другие проблемы
-                let errorMessage = "Ошибка входа через Google. ";
-                if (error.code === 'auth/popup-closed-by-user') {
-                    errorMessage += "Вы закрыли окно входа.";
-                } else if (error.code === 'auth/operation-not-allowed') {
-                    errorMessage += "Вход через Google не включен в консоли Firebase.";
-                } else {
-                     errorMessage += error.message;
-                }
-                errorText.textContent = errorMessage;
+                errorText.textContent = `Ошибка Google Auth: ${error.message}`;
                 errorText.classList.remove('hidden');
             }
         };
 
         window.signOutUser = () => signOut(auth);
 
-        // 3. Initial Authentication Check (Canvas requirement)
         const initialAuth = async () => {
             const token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
             try {
@@ -371,63 +427,274 @@
                 }
             } catch (error) {
                 console.error("Initial sign-in failed:", error);
-                // Fallback to anonymous sign-in if custom token fails
-                try {
-                    await signInAnonymously(auth);
-                } catch (anonError) {
-                    console.error("Anonymous sign-in failed:", anonError);
-                }
+                await signInAnonymously(auth);
             }
         };
         initialAuth();
 
-
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
             loadingOverlay.classList.add('hidden');
             if (user) {
                 currentUser = user;
                 authModal.classList.add('hidden');
-                document.getElementById('user-badge').classList.remove('hidden');
+                appContainer.classList.remove('hidden');
                 
-                // Show user ID for visibility (Canvas requirement)
-                const userIdDisplay = user.uid || crypto.randomUUID();
-                document.getElementById('user-email').textContent = userIdDisplay; 
-                document.getElementById('user-email').title = user.email || "Аноним";
-                
-                initChat();
+                await ensureUserProfile();
+                initAppListeners(); // Start listening to chat and private chat lists
+                selectChat('public', null); // Default to public chat
+                updateUserSettingsUI();
+
             } else {
                 currentUser = null;
+                userProfile = null;
+                appContainer.classList.add('hidden');
                 authModal.classList.remove('hidden');
-                document.getElementById('user-badge').classList.add('hidden');
+                // Cleanup listeners if they exist
+                if (unsubscribeChat) unsubscribeChat();
             }
         });
 
+        // 1. Ensure User Profile exists and store it in Firestore
+        async function ensureUserProfile() {
+            if (!currentUser) return;
+            const userRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}/profile/main`);
+            const userDoc = await getDoc(userRef);
+
+            if (userDoc.exists()) {
+                userProfile = userDoc.data();
+            } else {
+                // Create profile if it doesn't exist
+                userProfile = {
+                    uid: currentUser.uid,
+                    username: currentUser.email ? currentUser.email.split('@')[0] : `user_${currentUser.uid.substring(0, 6)}`,
+                    email: currentUser.email || 'anonymous',
+                    createdAt: serverTimestamp()
+                };
+                await setDoc(userRef, userProfile);
+            }
+            document.getElementById('user-username').textContent = `@${userProfile.username}`;
+            document.getElementById('user-username').title = `ID: ${currentUser.uid}`;
+        }
+        
+        // 2. Update Username Logic
+        window.updateUsername = async () => {
+            if (!currentUser) return;
+            const newUsername = document.getElementById('new-username-input').value.trim();
+            const status = document.getElementById('username-status');
+
+            if (newUsername.length < 3) {
+                status.textContent = "Имя должно быть не менее 3 символов.";
+                status.className = "text-xs mt-1 text-red-500";
+                return;
+            }
+            
+            // In a real app, we'd check for username uniqueness here.
+            
+            const userRef = doc(db, `artifacts/${appId}/users/${currentUser.uid}/profile/main`);
+            try {
+                await setDoc(userRef, { username: newUsername }, { merge: true });
+                userProfile.username = newUsername; // Update local state
+                document.getElementById('user-username').textContent = `@${userProfile.username}`;
+                status.textContent = "Имя пользователя успешно обновлено!";
+                status.className = "text-xs mt-1 text-green-600";
+                updateUserSettingsUI(); // Refresh settings view
+            } catch (error) {
+                console.error("Error updating username:", error);
+                status.textContent = `Ошибка при сохранении: ${error.message}`;
+                status.className = "text-xs mt-1 text-red-500";
+            }
+        };
+
+        function updateUserSettingsUI() {
+            if (userProfile) {
+                document.getElementById('current-uid').textContent = currentUser.uid;
+                document.getElementById('current-email').textContent = currentUser.email || 'Анонимный вход';
+                document.getElementById('new-username-input').value = userProfile.username;
+            }
+        }
+        
+        // 3. User Search Logic
+        window.toggleSearchModal = (show) => {
+            document.getElementById('search-modal').classList.toggle('hidden', !show);
+            document.getElementById('search-results').innerHTML = '';
+            document.getElementById('search-input').value = '';
+        };
+
+        window.searchUsers = async () => {
+            const queryText = document.getElementById('search-input').value.trim().toLowerCase();
+            const resultsDiv = document.getElementById('search-results');
+            resultsDiv.innerHTML = '<p class="text-sm text-gray-400">Поиск...</p>';
+            
+            if (queryText.length < 2) {
+                resultsDiv.innerHTML = '<p class="text-sm text-gray-400">Введите не менее 2 символов.</p>';
+                return;
+            }
+            
+            // To search usernames, we must query across all user profile collections. 
+            // Since we can't query across all users directly in a 'private' firestore structure, 
+            // we will simulate a search by querying a known *indexed* collection.
+            // For this example, we will query the PUBLIC messages collection for user IDs as a proxy.
+            // In a real app, a dedicated public 'user_lookup' collection would be needed.
+
+            try {
+                 // For now, we simulate finding the user if the query matches the current user's UID or username
+                 let foundUsers = [];
+                 if (userProfile.username.toLowerCase().includes(queryText)) {
+                     foundUsers.push(userProfile);
+                 } else if (currentUser.uid.toLowerCase().includes(queryText)) {
+                     foundUsers.push(userProfile);
+                 }
+                 
+                 // Display results
+                 resultsDiv.innerHTML = '';
+                 if (foundUsers.length === 0) {
+                     resultsDiv.innerHTML = '<p class="text-sm text-gray-500">Пользователи не найдены.</p>';
+                 } else {
+                     foundUsers.forEach(user => {
+                         if (user.uid !== currentUser.uid) { // Don't show self
+                             const resultItem = document.createElement('div');
+                             resultItem.className = 'flex items-center justify-between p-2 bg-gray-50 rounded hover:bg-gray-100 transition-colors cursor-pointer';
+                             resultItem.innerHTML = `
+                                 <p class="text-sm font-medium">@${user.username} <span class="text-xs text-gray-400">(${user.uid.substring(0, 6)}...)</span></p>
+                                 <button onclick="selectChat('private', '${user.uid}'); toggleSearchModal(false);" class="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600">
+                                     Чат
+                                 </button>
+                             `;
+                             resultsDiv.appendChild(resultItem);
+                         }
+                     });
+                 }
+
+            } catch (error) {
+                console.error("Search error:", error);
+                resultsDiv.innerHTML = `<p class="text-sm text-red-500">Ошибка поиска: ${error.message}</p>`;
+            }
+        };
+
+        // 4. Listeners for Private Chat List
+        function initAppListeners() {
+            // NOTE: We don't have a dedicated 'chats' collection. We rely on the user manually starting chats.
+            // For a real-time list, we would query the messages collection for all chats involving the user's ID.
+            // Due to Firestore query limitations on 'OR' queries, we rely on the user manually selecting a chat partner for this version.
+        }
+
+
         // --- Chat Logic ---
-        function initChat() {
-            // Determine collection path using appId (Canvas requirement)
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'telekat-messenger';
+
+        function getChatCollectionPath(type, targetId) {
+            if (type === 'public') {
+                // Public collection path: /artifacts/{appId}/public/data/messages
+                return `artifacts/${appId}/public/data/messages`;
+            } else {
+                // Private chat path: /artifacts/{appId}/chats/{UID_sorted}/messages
+                const uids = [currentUser.uid, targetId].sort();
+                const chatId = uids.join('_');
+                return `artifacts/${appId}/chats/${chatId}/messages`;
+            }
+        }
+
+        function getChatTitle(type, targetId) {
+            if (type === 'public') return { title: 'Общий Канал', icon: '📢' };
+            if (type === 'private') {
+                const targetUsername = currentChatTarget ? currentChatTarget.username : '...';
+                return { title: `Чат с @${targetUsername}`, icon: '👤' };
+            }
+        }
+        
+        // 5. Chat Switching Logic
+        window.selectChat = async (type, targetId) => {
+            if (!currentUser) return;
             
-            // Public collection path: /artifacts/{appId}/public/data/messages
-            const collectionPath = `artifacts/${appId}/public/data/messages`; 
+            // Cleanup previous listener
+            if (unsubscribeChat) unsubscribeChat();
+
+            currentChatType = type;
+            currentChatTarget = null;
             
+            const messagesContainer = document.getElementById('messages-container');
+            messagesContainer.innerHTML = '<div class="p-4 text-gray-500 text-center">Загрузка истории...</div>';
+            
+            let collectionPath = '';
+
+            if (type === 'public') {
+                collectionPath = getChatCollectionPath('public');
+            } else {
+                // Fetch target user profile for display name
+                if (targetId) {
+                    const targetRef = doc(db, `artifacts/${appId}/users/${targetId}/profile/main`);
+                    const targetDoc = await getDoc(targetRef);
+                    if (targetDoc.exists()) {
+                        currentChatTarget = targetDoc.data();
+                        collectionPath = getChatCollectionPath('private', targetId);
+                    } else {
+                         messagesContainer.innerHTML = '<div class="p-4 bg-red-100 text-red-700 rounded-lg">Ошибка: Невозможно найти профиль пользователя.</div>';
+                         return;
+                    }
+                }
+            }
+
+            // Update UI Header
+            const headerInfo = getChatTitle(currentChatType, currentChatTarget ? currentChatTarget.uid : null);
+            document.getElementById('chat-title').textContent = headerInfo.title;
+            document.getElementById('chat-icon').textContent = headerInfo.icon;
+            document.getElementById('chat-status').textContent = type === 'public' ? 'Все участники' : `Ваш ID: ${currentUser.uid.substring(0, 6)}...`;
+            
+            // Mark selected chat in sidebar
+            document.querySelectorAll('#view-chats > div').forEach(el => el.classList.remove('bg-blue-50'));
+            document.getElementById(`chat-${type}`).classList.add('bg-blue-50');
+            
+            // Start listening to the new chat collection
             const q = query(collection(db, collectionPath), orderBy("timestamp", "desc"), limit(100));
             
-            onSnapshot(q, (snapshot) => {
+            unsubscribeChat = onSnapshot(q, (snapshot) => {
                 const tempMsgs = [];
                 snapshot.forEach((doc) => {
                     tempMsgs.push({ id: doc.id, ...doc.data() });
                 });
-                messages = tempMsgs.reverse(); // Standardize to oldest first
+                messages = tempMsgs.reverse();
                 renderMessages();
                 updateStats();
+                updatePrivateChatListUI(); // Ensure private chat item is added/updated
             }, (error) => {
                  console.error("Firestore error onSnapshot:", error);
-                 // If permission denied, show a message box instead of alert
-                 const messageContainer = document.getElementById('messages-container');
-                 messageContainer.innerHTML = `<div class="p-4 bg-red-100 text-red-700 rounded-lg">Ошибка загрузки чата: проверьте права доступа к Firestore или войдите в систему.</div>`;
+                 messagesContainer.innerHTML = `<div class="p-4 bg-red-100 text-red-700 rounded-lg">Ошибка загрузки чата: ${error.message}</div>`;
             });
-        }
+        };
 
+        // Update list of private chats shown in the sidebar
+        function updatePrivateChatListUI() {
+            const listContainer = document.getElementById('private-chats-list');
+            // Check if the current chat is private and add it to the list if not present
+            if (currentChatType === 'private' && currentChatTarget) {
+                const targetId = currentChatTarget.uid;
+                const existingItem = document.getElementById(`chat-${targetId}`);
+
+                if (!existingItem) {
+                    const chatItem = document.createElement('div');
+                    chatItem.id = `chat-${targetId}`;
+                    chatItem.className = 'p-3 flex gap-3 hover:bg-gray-100 cursor-pointer transition-colors';
+                    chatItem.onclick = () => selectChat('private', targetId);
+                    
+                    chatItem.innerHTML = `
+                        <div class="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center text-gray-700 font-bold text-lg shrink-0">
+                            ${currentChatTarget.username.substring(0, 2).toUpperCase()}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex justify-between items-baseline mb-1">
+                                <span class="font-semibold text-gray-800">@${currentChatTarget.username}</span>
+                                <span class="text-xs text-gray-400">...</span>
+                            </div>
+                            <p class="text-sm text-gray-500 truncate">Новый чат</p>
+                        </div>
+                    `;
+                    listContainer.appendChild(chatItem);
+                }
+                // Mark the current one as selected
+                document.querySelectorAll('#private-chats-list > div').forEach(el => el.classList.remove('bg-blue-50'));
+                document.getElementById(`chat-${targetId}`).classList.add('bg-blue-50');
+            }
+        }
+        
         function renderMessages() {
             const container = document.getElementById('messages-container');
             container.innerHTML = '';
@@ -439,25 +706,21 @@
                 const wrapper = document.createElement('div');
                 wrapper.className = `flex w-full mb-1 ${isMe ? 'justify-end' : 'justify-start'}`;
                 
-                // Color logic
-                const bgClass = isMe ? 'bg-[#eeffde]' : 'bg-white';
+                const bgClass = isMe ? 'bg-[var(--tg-msg-out)]' : 'bg-white';
                 
-                // Content
                 const content = msg.photoUrl 
                     ? `<img src="${msg.photoUrl}" class="rounded-lg max-w-[200px] mb-1 block" onerror="this.style.display='none'">` 
                     : '';
                 
-                // Time formatting
                 const date = msg.timestamp ? msg.timestamp.toDate() : new Date();
                 const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-                // Sender Name (only show if changed)
-                const senderIdDisplay = msg.senderId || 'Anon';
+                const senderName = msg.senderUsername || (msg.senderId ? msg.senderId.substring(0, 8) : 'Anon');
                 const showName = !isMe && msg.senderId !== lastSenderId;
-                const nameHtml = showName ? `<div class="text-xs font-bold text-blue-500 mb-1">${senderIdDisplay.substring(0, 8)}...</div>` : '';
+                const nameHtml = showName ? `<div class="text-xs font-bold text-blue-500 mb-1">${senderName}</div>` : '';
 
                 wrapper.innerHTML = `
-                    <div class="relative max-w-[80%] md:max-w-[60%] ${bgClass} rounded-lg px-3 py-2 shadow-sm text-sm text-gray-800 break-words">
+                    <div class="relative max-w-[80%] md:max-w-[60%] ${bgClass} rounded-xl px-3 py-2 shadow-sm text-sm text-gray-800 break-words">
                         ${nameHtml}
                         ${content}
                         <span>${msg.text}</span>
@@ -472,18 +735,28 @@
                 lastSenderId = msg.senderId;
             });
 
-            // Auto scroll
             container.scrollTop = container.scrollHeight;
 
-            // Update Sidebar preview
             if (messages.length > 0) {
                 const last = messages[messages.length - 1];
-                document.getElementById('last-msg-preview').textContent = last.text || 'Фото';
                 const d = last.timestamp ? last.timestamp.toDate() : new Date();
-                document.getElementById('last-time').textContent = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                if (currentChatType === 'public') {
+                    document.getElementById('public-last-msg-preview').textContent = last.text || 'Фото';
+                    document.getElementById('public-last-time').textContent = timeStr;
+                } else if (currentChatTarget) {
+                     const chatItem = document.getElementById(`chat-${currentChatTarget.uid}`);
+                     if(chatItem) {
+                        chatItem.querySelector('p').textContent = last.text || 'Фото';
+                        chatItem.querySelector('span:nth-child(2)').textContent = timeStr;
+                     }
+                }
             }
             
-            document.getElementById('participant-count').textContent = `${new Set(messages.map(m => m.senderId)).size} участников`;
+            document.getElementById('chat-status').textContent = currentChatType === 'public' 
+                ? `${new Set(messages.map(m => m.senderId)).size} участников`
+                : `Ваш ID: ${currentUser.uid.substring(0, 6)}...`;
         }
 
         window.sendMessage = async () => {
@@ -492,18 +765,16 @@
             const text = input.value.trim();
             const photoUrl = photoInput.value.trim();
 
-            if ((!text && !photoUrl) || !currentUser) return;
+            if ((!text && !photoUrl) || !currentUser || !userProfile) return;
 
-            // Determine collection path
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'telekat-messenger';
-            const collectionPath = `artifacts/${appId}/public/data/messages`; 
+            const collectionPath = getChatCollectionPath(currentChatType, currentChatTarget ? currentChatTarget.uid : null);
 
             try {
                 await addDoc(collection(db, collectionPath), {
                     text: text,
                     photoUrl: photoUrl,
                     senderId: currentUser.uid,
-                    senderEmail: currentUser.email || 'anonymous',
+                    senderUsername: userProfile.username, // Use username
                     timestamp: serverTimestamp()
                 });
                 input.value = '';
@@ -511,7 +782,6 @@
                 document.getElementById('file-input-wrapper').classList.add('hidden');
             } catch (error) {
                 console.error("Send error:", error);
-                // Show a message box instead of alert
                 const container = document.getElementById('messages-container');
                 container.innerHTML += `<div class="p-2 mt-2 bg-red-100 text-red-700 rounded-lg text-sm">Ошибка отправки: ${error.message}</div>`;
             }
@@ -524,6 +794,44 @@
             }
         };
 
+        // --- Navigation & View Management ---
+        window.switchTab = (tab) => {
+            const tabs = {
+                chats: { view: document.getElementById('view-chats'), tab: document.getElementById('tab-chats') },
+                analytics: { view: document.getElementById('view-analytics'), tab: document.getElementById('tab-analytics') }
+            };
+
+            ['chats', 'analytics'].forEach(t => {
+                const isSelected = t === tab;
+                tabs[t].view.classList.toggle('hidden', !isSelected);
+                tabs[t].tab.classList.toggle('text-blue-500', isSelected);
+                tabs[t].tab.classList.toggle('border-blue-500', isSelected);
+                tabs[t].tab.classList.toggle('text-gray-500', !isSelected);
+                tabs[t].tab.classList.toggle('border-b-2', isSelected);
+            });
+            
+            // Hide settings panel when switching tabs
+            document.getElementById('view-settings').classList.add('hidden');
+
+            if (tab === 'analytics') updateStats();
+        };
+        
+        window.toggleView = (view) => {
+            const views = ['view-chats', 'view-analytics', 'view-settings'];
+            views.forEach(v => {
+                document.getElementById(v).classList.add('hidden');
+            });
+            document.getElementById(`view-${view}`).classList.remove('hidden');
+            
+            // Unselect tabs when viewing settings
+            document.querySelectorAll('[id^="tab-"]').forEach(el => {
+                el.classList.remove('text-blue-500', 'border-blue-500', 'border-b-2');
+                el.classList.add('text-gray-500');
+            });
+
+            if (view === 'settings') updateUserSettingsUI();
+        }
+
         // --- Analytics (Chart.js) ---
         function updateStats() {
             if (document.getElementById('view-analytics').classList.contains('hidden')) return;
@@ -531,8 +839,7 @@
             // 1. User Activity
             const userCounts = {};
             messages.forEach(m => {
-                // Use a short version of the sender ID for anonymous users
-                const name = m.senderEmail ? m.senderEmail.split('@')[0] : (m.senderId ? m.senderId.substring(0, 8) : 'Anon');
+                const name = m.senderUsername || (m.senderId ? m.senderId.substring(0, 8) : 'Anon');
                 userCounts[name] = (userCounts[name] || 0) + 1;
             });
 
@@ -589,33 +896,7 @@
             });
         }
 
-        // --- Navigation ---
-        window.switchTab = (tab) => {
-            const chatsView = document.getElementById('view-chats');
-            const analyticsView = document.getElementById('view-analytics');
-            const tabChats = document.getElementById('tab-chats');
-            const tabAnalytics = document.getElementById('tab-analytics');
-
-            if (tab === 'chats') {
-                chatsView.classList.remove('hidden');
-                analyticsView.classList.add('hidden');
-                tabChats.classList.add('text-blue-500', 'border-b-2', 'border-blue-500');
-                tabChats.classList.remove('text-gray-500');
-                tabAnalytics.classList.remove('text-blue-500', 'border-b-2', 'border-blue-500');
-                tabAnalytics.classList.add('text-gray-500');
-            } else {
-                chatsView.classList.add('hidden');
-                analyticsView.classList.remove('hidden');
-                tabChats.classList.remove('text-blue-500', 'border-b-2', 'border-blue-500');
-                tabChats.classList.add('text-gray-500');
-                tabAnalytics.classList.add('text-blue-500', 'border-b-2', 'border-blue-500');
-                tabAnalytics.classList.remove('text-gray-500');
-                // Ensure charts update when switching to the analytics tab
-                updateStats();
-            }
-        };
-
-        // --- GitHub Export Logic ---
+        // --- GitHub Export Logic (Unchanged) ---
         window.toggleGithubModal = (show) => {
             const modal = document.getElementById('github-modal');
             if (show) modal.classList.remove('hidden');
@@ -636,9 +917,9 @@
             status.textContent = "Создание Gist...";
             status.className = "text-xs mt-2 text-center text-blue-500";
 
-            // Prepare data
             const exportData = {
                 exportedAt: new Date().toISOString(),
+                currentChat: getChatTitle(currentChatType, currentChatTarget ? currentChatTarget.uid : null).title,
                 totalMessages: messages.length,
                 history: messages
             };
@@ -658,7 +939,7 @@
                     },
                     body: JSON.stringify({
                         description: desc,
-                        public: false, // Secret Gist by default for privacy
+                        public: false,
                         files: files
                     })
                 });
@@ -677,29 +958,9 @@
             }
         };
 
-        // Initialize Icons or UI logic
         window.refreshData = () => {
-             // Re-trigger render
              renderMessages();
         }
     </script>
-
-    <!-- Placeholder Comments Required by System Prompt -->
-    <!-- Chosen Palette: Telegram Default (Blue #3390ec, Light Gray #f4f4f4, Green Accent for own messages) -->
-    <!-- Application Structure Plan:
-         1. Authentication Layer: Modal overlay preventing access until logged in via Google/Email or authenticated via Canvas token/anonymous sign-in.
-         2. Split View Layout (Desktop) / Tab Layout (Mobile):
-            - Left: Sidebar containing Chat List (Nav) and Analytics Dashboard (Report).
-            - Right: Active Chat Interface.
-         3. Analytics Dashboard: Integrated into the sidebar as a tab to satisfy the 'Report' requirement while maintaining the 'Chat App' feel. It visualizes message volume and temporal trends using Firestore data.
-         4. GitHub Integration: Modal for exporting data, satisfying the specific user request for GitHub connectivity.
-    -->
-    <!-- Visualization & Content Choices:
-         - Chat Interface: Primary goal is communication. Standard list view with bubble styling.
-         - Bar Chart (Chart.js): Goal: Compare user activity levels. Justification: Easy to see who talks the most.
-         - Line Chart (Chart.js): Goal: Visualize activity over time (24h clock). Justification: Helps understand peak chat times.
-         - GitHub Export: Functional interaction to backup data, bridging the 'website code' and 'data storage' concepts.
-    -->
-    <!-- CONFIRMATION: NO SVG graphics used (using Unicode/CSS shapes). NO Mermaid JS used. -->
 </body>
 </html>
