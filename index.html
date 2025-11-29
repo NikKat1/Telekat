@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Telegram Web Clone</title>
+    <!-- Tailwind CSS (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Icons (CDN) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Font: Roboto (Telegram standard) -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --tg-bg: #0e1621;
+            --tg-secondary-bg: #17212b;
+            --tg-left-bg: #17212b;
+            --tg-border: #0e1621;
+            --tg-text: #ffffff;
+            --tg-hint: #7f91a4;
+            --tg-link: #64b5ef;
+            --tg-blue: #5288c1;
+            --tg-hover: #202b36;
+            --tg-msg-out: #2b5278;
+            --tg-msg-in: #182533;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--tg-bg);
+            color: var(--tg-text);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* --- Custom Scrollbar --- */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.4); }
+
+        /* --- Auth Screen Styles --- */
+        .auth-container {
+            background: var(--tg-secondary-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+        
+        .tg-input {
+            background: transparent;
+            border: 1px solid #3d4c5d;
+            color: white;
+            transition: 0.2s;
+        }
+        .tg-input:focus {
+            border-color: var(--tg-link);
+            outline: none;
+        }
+        
+        .tg-btn {
+            background-color: var(--tg-blue);
+            transition: 0.2s;
+        }
+        .tg-btn:hover { background-color: #4676a8; }
+        .tg-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* --- Chat App Styles --- */
+        .sidebar {
+            background-color: var(--tg-left-bg);
+            border-right: 1px solid #000;
+        }
+        
+        .chat-item:hover { background-color: var(--tg-hover); }
+        .chat-item.active { background-color: #2b5278; }
+
+        /* Telegram Background Pattern (Embedded Data URI for GitHub compatibility) */
+        .chat-main {
+            background-color: #0e1621;
+            background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 20.5V18H0v-2h20v-2H0v-2h20v-2H0V8h20V6H0V4h20V2H0V0h22v20h2V0h2v20h2V0h2v20h2V0h2v20h2V0h2v20h2v2H22v-2h-2z' fill='%23131c26' fill-opacity='0.4' fill-rule='evenodd'/%3E%3C/svg%3E");
+            background-repeat: repeat;
+        }
+
+        .msg-bubble {
+            max-width: 75%;
+            padding: 8px 12px;
+            border-radius: 12px;
+            position: relative;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            word-wrap: break-word;
+        }
+        
+        .msg-in {
+            background-color: var(--tg-msg-in);
+            border-bottom-left-radius: 0;
+        }
+        
+        .msg-out {
+            background-color: var(--tg-msg-out);
+            border-bottom-right-radius: 0;
+            margin-left: auto;
+        }
+
+        .msg-time {
+            font-size: 11px;
+            color: #788d9f;
+            float: right;
+            margin-left: 8px;
+            margin-top: 6px;
+        }
+        
+        .msg-out .msg-time { color: #8aa0b5; }
+
+        /* Mobile Utility */
+        .mobile-hidden { display: none; }
+        @media (min-width: 768px) {
+            .mobile-hidden { display: flex; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Safety Check for file:// protocol -->
+    <script>
+        if (window.location.protocol === 'file:') {
+            document.body.innerHTML = '<div style="color:white;text-align:center;padding:50px;font-family:sans-serif;"><h1>Ошибка запуска</h1><p>Firebase и модули JS не работают при открытии файла напрямую через двойной клик.</p><p>Пожалуйста, используйте локальный сервер (VS Code Live Server) или загрузите этот файл на <b>GitHub Pages</b>.</p></div>';
+            throw new Error("File protocol detected");
+        }
+    </script>
+
+    <!-- AUTH SCREEN -->
+    <div id="auth-screen" class="w-full h-full flex flex-col items-center justify-center p-4">
+        <div class="auth-container w-full max-w-md p-8 text-center relative overflow-hidden">
+            <!-- Logo -->
+            <div class="w-24 h-24 bg-[#5288c1] rounded-full mx-auto mb-6 flex items-center justify-center text-4xl shadow-lg">
+                <i class="fas fa-paper-plane text-white mr-1 mt-1"></i>
+            </div>
+            
+            <h2 class="text-2xl font-bold mb-2">Telegram Alpha</h2>
+            <p class="text-[#7f91a4] mb-8 text-sm">Пожалуйста, войдите, чтобы начать общение.</p>
+
+            <!-- Error Message Area -->
+            <div id="auth-error" class="hidden bg-red-900/50 text-red-200 p-3 rounded mb-4 text-sm border border-red-800 text-left"></div>
+
+            <!-- Tabs -->
+            <div class="flex border-b border-[#3d4c5d] mb-6">
+                <button id="tab-email" class="flex-1 pb-2 text-[#64b5ef] border-b-2 border-[#64b5ef] font-medium transition">Email</button>
+                <button id="tab-google" class="flex-1 pb-2 text-[#7f91a4] hover:text-[#b4cbe0] transition">Google</button>
+            </div>
+
+            <!-- Email Form -->
+            <div id="form-email" class="space-y-4 text-left">
+                <div>
+                    <label class="text-xs text-[#7f91a4] ml-1">Email</label>
+                    <input type="email" id="email-input" class="tg-input w-full p-3 rounded-lg" placeholder="Введите email">
+                </div>
+                <div>
+                    <label class="text-xs text-[#7f91a4] ml-1">Пароль</label>
+                    <input type="password" id="pass-input" class="tg-input w-full p-3 rounded-lg" placeholder="Введите пароль">
+                </div>
+                
+                <div class="flex gap-3 mt-2">
+                    <button id="login-btn" class="tg-btn w-full py-3 rounded-lg text-white font-medium shadow">Войти</button>
+                    <button id="register-btn" class="bg-[#2b5278] hover:bg-[#34608a] w-full py-3 rounded-lg text-white font-medium transition shadow">Регистрация</button>
+                </div>
+            </div>
+
+            <!-- Google Form -->
+            <div id="form-google" class="hidden space-y-4">
+                <p class="text-sm text-gray-400 mb-4">Быстрый вход через аккаунт Google</p>
+                <button id="google-login-btn" class="bg-white hover:bg-gray-100 text-gray-800 w-full py-3 rounded-lg font-medium shadow flex items-center justify-center gap-3 transition">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5">
+                    Продолжить с Google
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div id="app-container" class="hidden w-full h-full max-w-[1600px] shadow-2xl overflow-hidden md:rounded-lg md:h-[95vh] bg-[#17212b] border border-black flex">
+        
+        <!-- SIDEBAR (Chat List) -->
+        <div id="sidebar" class="w-full md:w-[350px] lg:w-[400px] sidebar flex flex-col h-full z-20">
+            <!-- Sidebar Header -->
+            <div class="p-3 flex items-center gap-3 bg-[#17212b]">
+                <button id="menu-btn" class="text-[#7f91a4] hover:text-white p-2"><i class="fas fa-bars"></i></button>
+                <div class="relative flex-1">
+                    <input type="text" id="user-search" placeholder="Поиск" class="w-full bg-[#242f3d] text-white text-sm rounded-full py-2 pl-9 pr-4 focus:bg-white focus:text-black transition placeholder-[#7f91a4] focus:placeholder-gray-500 border border-transparent focus:border-[#64b5ef]">
+                    <i class="fas fa-search absolute left-3 top-2.5 text-[#7f91a4] text-xs pointer-events-none"></i>
+                </div>
+            </div>
+
+            <!-- User Profile (Mini) -->
+            <div class="px-4 pb-2 flex justify-between items-center border-b border-black/20">
+                <div class="flex items-center gap-2 cursor-pointer hover:opacity-80" id="profile-area">
+                    <img id="my-avatar" src="" class="w-8 h-8 rounded-full bg-blue-500 object-cover">
+                    <span id="my-username" class="text-sm font-bold text-white truncate max-w-[150px]">...</span>
+                </div>
+                <button id="logout-btn" class="text-[#7f91a4] hover:text-red-400 text-xs uppercase font-bold tracking-wider">Выход</button>
+            </div>
+
+            <!-- Chat List -->
+            <div id="users-list" class="flex-1 overflow-y-auto">
+                <!-- Chat Items injected here -->
+                <div class="text-center mt-10 text-[#7f91a4] text-sm">Загрузка чатов...</div>
+            </div>
+        </div>
+
+        <!-- MAIN CHAT AREA -->
+        <div id="chat-area" class="hidden md:flex flex-1 flex-col h-full chat-main relative w-full z-30">
+            <!-- No Chat Selected Placeholder -->
+            <div id="no-chat-placeholder" class="absolute inset-0 flex flex-col items-center justify-center bg-[#0e1621] z-40">
+                <div class="bg-[#17212b] p-4 rounded-full mb-4">
+                    <span class="text-2xl text-[#7f91a4]">Choose a chat</span>
+                </div>
+            </div>
+
+            <!-- Chat Header -->
+            <div class="h-[60px] bg-[#17212b] border-b border-black/20 flex items-center justify-between px-4 z-50 shadow-sm">
+                <div class="flex items-center gap-4">
+                    <button id="back-btn" class="md:hidden text-[#7f91a4] hover:text-white"><i class="fas fa-arrow-left text-xl"></i></button>
+                    <div class="flex items-center gap-3 cursor-pointer">
+                        <img id="chat-header-avatar" src="" class="w-10 h-10 rounded-full bg-gray-700 object-cover">
+                        <div>
+                            <h3 id="chat-header-name" class="font-bold text-white leading-tight">User</h3>
+                            <span class="text-xs text-[#64b5ef]">был(а) недавно</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex gap-4 text-[#7f91a4]">
+                    <i class="fas fa-search hover:text-white cursor-pointer"></i>
+                    <i class="fas fa-phone hover:text-white cursor-pointer"></i>
+                    <i class="fas fa-ellipsis-v hover:text-white cursor-pointer"></i>
+                </div>
+            </div>
+
+            <!-- Messages List -->
+            <div id="messages-container" class="flex-1 overflow-y-auto p-2 md:p-4 space-y-2 relative">
+                <!-- Messages injected here -->
+            </div>
+
+            <!-- Input Area -->
+            <div class="p-2 bg-[#17212b] flex items-end gap-2 relative">
+                <button class="p-3 text-[#7f91a4] hover:text-white transition"><i class="fas fa-paperclip text-lg"></i></button>
+                <input type="file" id="image-input" class="hidden">
+                
+                <div class="flex-1 bg-black/20 rounded-xl flex flex-col justify-center min-h-[44px]">
+                    <!-- Image Preview -->
+                    <div id="image-preview-container" class="hidden p-2 border-b border-white/10 relative">
+                        <img id="image-preview" class="h-20 rounded-lg">
+                        <button id="remove-image" class="absolute top-1 right-1 bg-black/50 hover:bg-black/80 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">×</button>
+                    </div>
+                    
+                    <textarea id="message-input" rows="1" placeholder="Написать сообщение..." class="w-full bg-transparent text-white px-4 py-3 resize-none focus:outline-none placeholder-[#7f91a4] text-[15px]" style="max-height: 120px;"></textarea>
+                </div>
+                
+                <button id="send-btn" class="p-3 text-[#5288c1] hover:text-[#64b5ef] transition"><i class="fas fa-paper-plane text-xl"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Profile Modal -->
+    <div id="username-modal" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm hidden">
+        <div class="bg-[#17212b] p-6 rounded-xl w-80 text-center shadow-2xl border border-gray-800">
+            <h3 class="text-xl font-bold mb-4 text-white">Изменить профиль</h3>
+            <input type="text" id="new-username-input" placeholder="Новый @username" class="tg-input w-full p-2 rounded mb-4 text-center">
+            <div class="flex gap-2 justify-center">
+                <button id="save-username-btn" class="tg-btn px-4 py-2 rounded text-white">Сохранить</button>
+                <button onclick="document.getElementById('username-modal').classList.add('hidden')" class="text-[#7f91a4] hover:text-white px-4 py-2">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS LOGIC -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { 
+            getAuth, 
+            signOut, 
+            onAuthStateChanged,
+            GoogleAuthProvider,
+            signInWithPopup,
+            signInWithEmailAndPassword,
+            createUserWithEmailAndPassword
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, where, onSnapshot, orderBy, doc, setDoc, getDoc, updateDoc, serverTimestamp, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+
+        // CONFIG (ВНИМАНИЕ: Для GitHub Pages нужно добавить домен в Firebase Console -> Authentication -> Settings -> Authorized Domains)
+        const firebaseConfig = {
+            apiKey: "AIzaSyDOLTF4-793xdfJuyTzy9ZX3L01VTGbf4c",
+            authDomain: "katcall-ef89a.firebaseapp.com",
+            projectId: "katcall-ef89a",
+            storageBucket: "katcall-ef89a.firebasestorage.app",
+            messagingSenderId: "524383956944",
+            appId: "1:524383956944:web:f16a07c341f729778113d5",
+            measurementId: "G-R6XQF0VZKJ"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+        const googleProvider = new GoogleAuthProvider();
+
+        // STATE
+        let currentUser = null;
+        let currentChatId = null;
+        let unsubscribeMessages = null;
+        let unsubscribeChats = null;
+        let selectedFile = null;
+
+        // UI ELEMENTS
+        const authScreen = document.getElementById('auth-screen');
+        const appContainer = document.getElementById('app-container');
+        const usersList = document.getElementById('users-list');
+        const messagesContainer = document.getElementById('messages-container');
+        const sidebar = document.getElementById('sidebar');
+        const chatArea = document.getElementById('chat-area');
+        const noChatPlaceholder = document.getElementById('no-chat-placeholder');
+        const authError = document.getElementById('auth-error');
+
+        // --- AUTH LOGIC (GOOGLE + EMAIL) ---
+
+        const tabEmail = document.getElementById('tab-email');
+        const tabGoogle = document.getElementById('tab-google');
+        const formEmail = document.getElementById('form-email');
+        const formGoogle = document.getElementById('form-google');
+
+        function switchTab(tab) {
+            authError.classList.add('hidden');
+            if(tab === 'email') {
+                tabEmail.classList.add('text-[#64b5ef]', 'border-[#64b5ef]');
+                tabEmail.classList.remove('text-[#7f91a4]', 'border-transparent');
+                tabGoogle.classList.remove('text-[#64b5ef]', 'border-[#64b5ef]');
+                tabGoogle.classList.add('text-[#7f91a4]');
+                formEmail.classList.remove('hidden');
+                formGoogle.classList.add('hidden');
+            } else {
+                tabGoogle.classList.add('text-[#64b5ef]', 'border-[#64b5ef]');
+                tabGoogle.classList.remove('text-[#7f91a4]', 'border-transparent');
+                tabEmail.classList.remove('text-[#64b5ef]', 'border-[#64b5ef]');
+                tabEmail.classList.add('text-[#7f91a4]');
+                formGoogle.classList.remove('hidden');
+                formEmail.classList.add('hidden');
+            }
+        }
+        tabEmail.onclick = () => switchTab('email');
+        tabGoogle.onclick = () => switchTab('google');
+
+        document.getElementById('login-btn').onclick = async () => {
+            const email = document.getElementById('email-input').value;
+            const pass = document.getElementById('pass-input').value;
+            try {
+                await signInWithEmailAndPassword(auth, email, pass);
+            } catch (e) {
+                showAuthError("Ошибка входа: " + mapAuthError(e.code));
+            }
+        };
+
+        document.getElementById('register-btn').onclick = async () => {
+            const email = document.getElementById('email-input').value;
+            const pass = document.getElementById('pass-input').value;
+            try {
+                const res = await createUserWithEmailAndPassword(auth, email, pass);
+                await checkCreateUserInDB(res.user);
+            } catch (e) {
+                showAuthError("Ошибка регистрации: " + mapAuthError(e.code));
+            }
+        };
+
+        document.getElementById('google-login-btn').onclick = async () => {
+            try {
+                await signInWithPopup(auth, googleProvider);
+            } catch (e) {
+                console.error(e);
+                if (e.code === 'auth/unauthorized-domain') {
+                    showAuthError(`
+                        <b>Ошибка домена!</b><br>
+                        Добавьте <b>${window.location.hostname}</b> в Authorized Domains в Firebase Console.<br>
+                        (Authentication -> Settings -> Authorized Domains)
+                    `);
+                } else {
+                    showAuthError("Google ошибка: " + e.message);
+                }
+            }
+        };
+
+        document.getElementById('logout-btn').onclick = () => signOut(auth);
+
+        function showAuthError(msg) {
+            authError.innerHTML = msg; // Используем innerHTML для форматирования
+            authError.classList.remove('hidden');
+        }
+
+        function mapAuthError(code) {
+            switch(code) {
+                case 'auth/invalid-email': return 'Некорректный email';
+                case 'auth/user-not-found': return 'Пользователь не найден';
+                case 'auth/wrong-password': return 'Неверный пароль';
+                case 'auth/email-already-in-use': return 'Email уже занят';
+                case 'auth/weak-password': return 'Пароль слишком простой (мин. 6 символов)';
+                default: return code;
+            }
+        }
+
+        // --- GLOBAL AUTH STATE LISTENER ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                authScreen.classList.add('hidden'); 
+                authScreen.style.display = 'none'; 
+                appContainer.classList.remove('hidden');
+                appContainer.classList.add('flex');
+                
+                await checkCreateUserInDB(user);
+                loadMyProfile();
+                loadChatList();
+            } else {
+                currentUser = null;
+                authScreen.classList.remove('hidden');
+                authScreen.style.display = 'flex';
+                appContainer.classList.add('hidden');
+                appContainer.classList.remove('flex');
+                
+                if (unsubscribeMessages) unsubscribeMessages();
+                if (unsubscribeChats) unsubscribeChats();
+                currentChatId = null;
+            }
+        });
+
+        // --- DB HELPERS ---
+        async function checkCreateUserInDB(user) {
+            const userRef = doc(db, "users", user.uid);
+            const userSnap = await getDoc(userRef);
+
+            if (!userSnap.exists()) {
+                let baseName = user.email ? user.email.split('@')[0] : 'user' + Math.floor(Math.random()*10000);
+                baseName = baseName.replace(/[^a-zA-Z0-9]/g, '');
+                
+                await setDoc(userRef, {
+                    uid: user.uid,
+                    displayName: user.displayName || baseName,
+                    email: user.email || 'No Email',
+                    photoURL: user.photoURL || `https://ui-avatars.com/api/?name=${baseName}&background=random`,
+                    username: baseName,
+                    username_lower: baseName.toLowerCase(),
+                    createdAt: serverTimestamp()
+                });
+            }
+        }
+
+        function loadMyProfile() {
+            onSnapshot(doc(db, "users", currentUser.uid), (doc) => {
+                const data = doc.data();
+                document.getElementById('my-avatar').src = data.photoURL;
+                document.getElementById('my-username').textContent = '@' + data.username;
+            });
+            
+            document.getElementById('profile-area').onclick = () => {
+                document.getElementById('new-username-input').value = document.getElementById('my-username').textContent.replace('@', '');
+                document.getElementById('username-modal').classList.remove('hidden');
+            };
+        }
+
+        // --- CHAT LIST & SEARCH ---
+        document.getElementById('user-search').addEventListener('input', async (e) => {
+            const term = e.target.value.toLowerCase().trim();
+            if (!term) {
+                loadChatList();
+                return;
+            }
+            
+            if (unsubscribeChats) unsubscribeChats(); 
+            
+            usersList.innerHTML = '<div class="text-center mt-4 text-[#7f91a4]">Поиск...</div>';
+            
+            const q = query(collection(db, "users"), where("username_lower", ">=", term), where("username_lower", "<=", term + '\uf8ff'));
+            const snaps = await getDocs(q);
+            
+            usersList.innerHTML = '';
+            snaps.forEach(doc => {
+                const uData = doc.data();
+                if (uData.uid === currentUser.uid) return;
+                
+                const el = document.createElement('div');
+                el.className = 'flex items-center gap-3 p-3 cursor-pointer hover:bg-[#202b36] transition border-b border-black/10';
+                el.innerHTML = `
+                    <img src="${uData.photoURL}" class="w-12 h-12 rounded-full object-cover">
+                    <div>
+                        <div class="text-white font-bold text-sm">${uData.username}</div>
+                        <div class="text-[#7f91a4] text-xs">Нажмите, чтобы написать</div>
+                    </div>
+                `;
+                el.onclick = () => startChat(uData);
+                usersList.appendChild(el);
+            });
+        });
+
+        function loadChatList() {
+            if (unsubscribeChats) unsubscribeChats();
+            
+            const q = query(collection(db, "chats"), where("participants", "array-contains", currentUser.uid));
+            
+            unsubscribeChats = onSnapshot(q, (snapshot) => {
+                const chats = [];
+                snapshot.forEach(doc => chats.push({id: doc.id, ...doc.data()}));
+                
+                chats.sort((a,b) => (b.lastMessageTime?.seconds || 0) - (a.lastMessageTime?.seconds || 0));
+
+                usersList.innerHTML = '';
+                if(chats.length === 0) {
+                    usersList.innerHTML = '<div class="text-center mt-10 text-[#7f91a4] text-sm">Нет активных чатов</div>';
+                }
+
+                chats.forEach(chat => {
+                    const otherId = chat.participants.find(id => id !== currentUser.uid);
+                    const otherUser = chat.participantsData?.[otherId] || { username: 'User', photoURL: '' };
+                    
+                    const el = document.createElement('div');
+                    el.id = `chat-item-${chat.id}`;
+                    el.className = `chat-item flex items-center gap-3 p-3 cursor-pointer transition ${currentChatId === chat.id ? 'active' : ''}`;
+                    
+                    let timeDisplay = '';
+                    if(chat.lastMessageTime) {
+                        const date = chat.lastMessageTime.toDate();
+                        timeDisplay = `${date.getHours()}:${(date.getMinutes()<10?'0':'') + date.getMinutes()}`;
+                    }
+
+                    el.innerHTML = `
+                        <img src="${otherUser.photoURL}" class="w-12 h-12 rounded-full object-cover bg-gray-600">
+                        <div class="flex-1 overflow-hidden">
+                            <div class="flex justify-between items-center">
+                                <span class="text-white font-bold text-sm truncate">${otherUser.username}</span>
+                                <span class="text-[#7f91a4] text-xs">${timeDisplay}</span>
+                            </div>
+                            <div class="text-[#7f91a4] text-sm truncate w-full">
+                                ${chat.lastMessage || 'Нет сообщений'}
+                            </div>
+                        </div>
+                    `;
+                    el.onclick = () => openChat(chat.id, otherUser, otherId);
+                    usersList.appendChild(el);
+                });
+            });
+        }
+
+        async function startChat(userObj) {
+            const combinedId = [currentUser.uid, userObj.uid].sort().join("_");
+            const chatRef = doc(db, "chats", combinedId);
+            const chatSnap = await getDoc(chatRef);
+            
+            const mySnap = await getDoc(doc(db, "users", currentUser.uid));
+            const myData = mySnap.data();
+
+            const pData = {
+                [currentUser.uid]: { username: myData.username, photoURL: myData.photoURL },
+                [userObj.uid]: { username: userObj.username, photoURL: userObj.photoURL }
+            };
+
+            if (!chatSnap.exists()) {
+                await setDoc(chatRef, {
+                    participants: [currentUser.uid, userObj.uid],
+                    participantsData: pData,
+                    lastMessage: '',
+                    lastMessageTime: serverTimestamp()
+                });
+            } else {
+                await updateDoc(chatRef, { participantsData: pData });
+            }
+            
+            document.getElementById('user-search').value = ''; 
+            loadChatList(); 
+            openChat(combinedId, userObj, userObj.uid);
+        }
+
+        // --- CHAT WINDOW ---
+        function openChat(chatId, userObj, userId) {
+            currentChatId = chatId;
+            noChatPlaceholder.classList.add('hidden');
+            
+            document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
+            const activeItem = document.getElementById(`chat-item-${chatId}`);
+            if(activeItem) activeItem.classList.add('active');
+
+            document.getElementById('chat-header-name').textContent = userObj.username;
+            document.getElementById('chat-header-avatar').src = userObj.photoURL;
+
+            if(window.innerWidth < 768) {
+                sidebar.classList.add('hidden');
+                chatArea.classList.remove('hidden');
+                chatArea.classList.add('flex');
+            }
+
+            if(unsubscribeMessages) unsubscribeMessages();
+            messagesContainer.innerHTML = '';
+            
+            const q = query(collection(db, "chats", chatId, "messages"), orderBy("createdAt", "asc"));
+            
+            unsubscribeMessages = onSnapshot(q, (snap) => {
+                snap.docChanges().forEach(change => {
+                    if(change.type === 'added') {
+                        renderMessage(change.doc.data());
+                    }
+                });
+                scrollToBottom();
+            });
+        }
+
+        function renderMessage(msg) {
+            const isMe = msg.senderId === currentUser.uid;
+            const div = document.createElement('div');
+            div.className = `flex mb-2 ${isMe ? 'justify-end' : 'justify-start'}`;
+            
+            let timeStr = '';
+            if(msg.createdAt) {
+                const d = msg.createdAt.toDate();
+                timeStr = `${d.getHours()}:${(d.getMinutes()<10?'0':'') + d.getMinutes()}`;
+            }
+
+            let content = '';
+            if(msg.imageUrl) content += `<img src="${msg.imageUrl}" class="rounded-lg mb-1 max-w-[250px] cursor-pointer" onclick="window.open(this.src)">`;
+            if(msg.text) content += `<span>${msg.text}</span>`;
+
+            div.innerHTML = `
+                <div class="msg-bubble ${isMe ? 'msg-out' : 'msg-in'}">
+                    ${content}
+                    <span class="msg-time">${timeStr} <i class="fas fa-check ${isMe ? '' : 'hidden'}"></i></span>
+                </div>
+            `;
+            messagesContainer.appendChild(div);
+        }
+
+        function scrollToBottom() {
+            setTimeout(() => messagesContainer.scrollTop = messagesContainer.scrollHeight, 100);
+        }
+
+        document.getElementById('back-btn').onclick = () => {
+            if(window.innerWidth < 768) {
+                chatArea.classList.add('hidden');
+                chatArea.classList.remove('flex');
+                sidebar.classList.remove('hidden');
+                currentChatId = null;
+            }
+        };
+
+        // --- SENDING ---
+        const msgInput = document.getElementById('message-input');
+        const imgInput = document.getElementById('image-input');
+        const previewCont = document.getElementById('image-preview-container');
+
+        msgInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+
+        document.querySelector('.fa-paperclip').parentElement.onclick = () => imgInput.click();
+        
+        imgInput.onchange = (e) => {
+            if(e.target.files[0]) {
+                selectedFile = e.target.files[0];
+                const r = new FileReader();
+                r.onload = (ev) => {
+                    document.getElementById('image-preview').src = ev.target.result;
+                    previewCont.classList.remove('hidden');
+                };
+                r.readAsDataURL(selectedFile);
+            }
+        };
+
+        document.getElementById('remove-image').onclick = () => {
+            selectedFile = null;
+            imgInput.value = '';
+            previewCont.classList.add('hidden');
+        };
+
+        document.getElementById('send-btn').onclick = async () => {
+            if(!currentChatId) return;
+            const text = msgInput.value.trim();
+            if(!text && !selectedFile) return;
+
+            msgInput.value = '';
+            msgInput.style.height = 'auto';
+            previewCont.classList.add('hidden');
+
+            let imageUrl = null;
+            if(selectedFile) {
+                const fileRef = ref(storage, `chat_images/${Date.now()}_${selectedFile.name}`);
+                await uploadBytes(fileRef, selectedFile);
+                imageUrl = await getDownloadURL(fileRef);
+                selectedFile = null;
+            }
+
+            await addDoc(collection(db, "chats", currentChatId, "messages"), {
+                text, imageUrl, senderId: currentUser.uid, createdAt: serverTimestamp()
+            });
+
+            await updateDoc(doc(db, "chats", currentChatId), {
+                lastMessage: text || 'Фотография',
+                lastMessageTime: serverTimestamp()
+            });
+        };
+        
+        msgInput.addEventListener('keypress', (e) => {
+            if(e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                document.getElementById('send-btn').click();
+            }
+        });
+
+        document.getElementById('save-username-btn').onclick = async () => {
+            const val = document.getElementById('new-username-input').value.trim();
+            if(val.length < 3) return alert('Слишком короткое имя');
+            
+            await updateDoc(doc(db, "users", currentUser.uid), {
+                username: val,
+                username_lower: val.toLowerCase()
+            });
+            document.getElementById('username-modal').classList.add('hidden');
+        }
+
+    </script>
+</body>
+</html>
